@@ -1,18 +1,20 @@
 package tt.co.justins.radio.radioreminder;
 
 import android.app.Activity;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.TextView;
 
 
-public class MyActivity extends Activity {
+public class MyActivity extends Activity implements AdapterView.OnItemSelectedListener {
 
     private static final String ACTION_SETUP = "tt.co.justins.radio.radioreminder.action.SETUP";
     private static final String ACTION_SHUT_DOWN = "tt.co.justins.radio.radioreminder.action.SHUTDOWN";
@@ -56,12 +58,27 @@ public class MyActivity extends Activity {
         adapter3.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
         wifiWatchSpin.setAdapter(adapter);
+        wifiWatchSpin.setOnItemSelectedListener(this);
         wifiRespondSpin.setAdapter(adapter);
+        wifiRespondSpin.setOnItemSelectedListener(this);
         wifiEventSpin.setAdapter(adapter2);
+        wifiEventSpin.setOnItemSelectedListener(this);
         wifiIntervalSpin.setAdapter(adapter3);
+        wifiIntervalSpin.setOnItemSelectedListener(this);
     }
 
-    public void myClickHandler(View v) {
+    //part of OnItemSelected interface
+    //fires when and item is selected in a spinner view
+    public void onItemSelected(AdapterView av, View v, int pos, long id) {
+        onClick(v);
+    }
+
+    //part of OnItemSelected interface
+    public void onNothingSelected(AdapterView av) {
+
+    }
+
+    public void onClick(View v) {
         TextView saveText = (TextView) findViewById(R.id.save_text);
         saveText.setText("Changes not saved");
         saveText.setVisibility(View.VISIBLE);
@@ -71,8 +88,10 @@ public class MyActivity extends Activity {
                 break;
             case R.id.interval_button:
                 break;
+            //clicked the apply button
+            //parse all the option selections and build an event object
             case R.id.save_button:
-                RadioService.Event myEvent = new RadioService.Event();
+                Event myEvent = new Event();
 
                 if(wifiWatchSpin.toString().equals("Radio On"))
                     myEvent.watchAction = RadioService.ACTION_WIFI_ON;
@@ -86,6 +105,8 @@ public class MyActivity extends Activity {
 
                 if(wifiEventSpin.toString().equals("Plugged In"))
                     myEvent.afterAction = RadioService.ACTION_POWER_CONNECTED;
+
+                myEvent.afterInterval = Float.parseFloat(wifiIntervalSpin.toString());
 
                 saveText.setText("Changes saved");
 

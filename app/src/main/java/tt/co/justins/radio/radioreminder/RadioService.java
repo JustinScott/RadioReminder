@@ -8,16 +8,22 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import java.security.PublicKey;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RadioService extends Service {
 
     private static final String ACTION_SETUP = "tt.co.justins.radio.radioreminder.action.SETUP";
     private static final String ACTION_EXIT = "tt.co.justins.radio.radioreminder.action.EXIT";
+    private static final String ACTION_EVENT = "tt.co.justins.radio.radioreminder.action.EVENT";
+
+    private static final String EXTRA_EVENT = "tt.co.justins.radio.radioreminder.extra.EVENT";
 
     public static final String ACTION_WIFI_ON = "tt.co.justins.radio.radioreminder.action.WIFI_ON";
     public static final String ACTION_WIFI_OFF = "tt.co.justins.radio.radioreminder.action.WIFI_OFF";
@@ -37,44 +43,54 @@ public class RadioService extends Service {
     private ConnectivityReceiver wifiReceiver;
     private ConnectivityReceiver batteryReceiver;
 
+    private List<Event> eventList;
+
     public RadioService() {
     }
 
-    public static class Event {
-        public int serviceType;
-        public String watchAction;
-        public String respondAction;
-        public String afterAction;
-        public int afterInterval;
-
-        public Event() {
-        }
-    }
-
     @Override
+    //grab the Action from the intent and call the action's handler
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             final String action = intent.getAction();
             if (ACTION_SETUP.equals(action)) {
                 final String param1 = intent.getStringExtra(EXTRA_PARAM1);
                 final String param2 = intent.getStringExtra(EXTRA_PARAM2);
-                handleActionSetup(param1, param2);
+                if(checkEventsForWatchAction(action) != -1)
+                    handleActionSetup(param1, param2);
             } else if (ACTION_EXIT.equals(action)) {
                 final String param1 = intent.getStringExtra(EXTRA_PARAM1);
                 final String param2 = intent.getStringExtra(EXTRA_PARAM2);
-                handleActionExit(param1, param2);
+                if(checkEventsForWatchAction(action) != -1)
+                    handleActionExit(param1, param2);
             } else if (ACTION_WIFI_OFF.equals(action)) {
                 final String param1 = intent.getStringExtra(EXTRA_PARAM1);
                 final String param2 = intent.getStringExtra(EXTRA_PARAM2);
-                handleActionWifiOff(param1, param2);
+                if(checkEventsForWatchAction(action) != -1)
+                    handleActionWifiOff(param1, param2);
             } else if (ACTION_POWER_CONNECTED.equals(action)) {
                 final String param1 = intent.getStringExtra(EXTRA_PARAM1);
                 final String param2 = intent.getStringExtra(EXTRA_PARAM2);
-                handleActionPowerConnected(param1, param2);
+                if(checkEventsForWatchAction(action) != -1)
+                    handleActionPowerConnected(param1, param2);
+            } else if (ACTION_EVENT.equals(action)) {
+                Event event = (Event) intent.getSerializableExtra(EXTRA_EVENT);
+                eventList.add(event);
             }
         }
         return START_STICKY;
     }
+
+    private int checkEventsForWatchAction(String action) {
+        int ndx = 0;
+        for(Event e : eventList) {
+            if(e.watchAction.equals(action))
+                return ndx;
+            ndx++;
+        }
+        return -1;
+    }
+
 
     private void handleActionWifiOff(String param1, String param2) {
         sendNotification("Waiting to get plugged in before restarting wifi");
@@ -82,6 +98,7 @@ public class RadioService extends Service {
         waiting = true;
     }
 
+    //creates a notification and sends it to the notification drawer
     private void sendNotification(String message) {
         NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
                 .setContentTitle("Radio Reminder")
@@ -96,6 +113,7 @@ public class RadioService extends Service {
         mNotificationManager.notify(mId, mBuilder.build());
     }
 
+    //This fucnction is called when the device is plugged in to a power source
     private void handleActionPowerConnected(String param1, String param2) {
         if(waiting) {
             //turn on wifi
@@ -103,6 +121,7 @@ public class RadioService extends Service {
             wifiMan.setWifiEnabled(true);
             Log.d(tag, "WIFI Enabled");
 
+            //remove notification
             NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             mNotificationManager.cancel(mId);
             Log.d(tag, "Notification removed");
@@ -111,9 +130,13 @@ public class RadioService extends Service {
         }
     }
 
+    //initialize all the receivers for the services that are being watched
+    //initialize the list of events that the service will watch for
     private void handleActionSetup(String param1, String param2) {
         wifiReceiver = new ConnectivityReceiver();
         batteryReceiver = new ConnectivityReceiver();
+
+        eventList = new ArrayList<Event>();
 
         registerReceiver(wifiReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         Log.d(tag, "Registered CONNECTIVITY_ACTION receiver");
@@ -121,6 +144,7 @@ public class RadioService extends Service {
         Log.d(tag, "Registered ACTION_POWER_CONNECTED receiver");
     }
 
+    //destroy all the receivers
     private void handleActionExit(String param1, String param2) {
         unregisterReceiver(wifiReceiver);
         Log.d(tag, "Unregistered CONNECTIVITY_ACTION receiver");

@@ -24,20 +24,6 @@
             android:enabled="true"
             android:exported="true" >
         </receiver>
-
-        <service
-            android:name=".RadioIntentService"
-            android:exported="false" >
-        </service>
-        <service
-            android:name=".MyService"
-            android:enabled="true"
-            android:exported="true" >
-        </service>
-        <service
-            android:name=".MyIntentService"
-            android:exported="false" >
-        </service>
         <service
             android:name=".RadioService"
             android:enabled="true"
