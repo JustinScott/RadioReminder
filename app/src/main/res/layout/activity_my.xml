@@ -1,0 +1,141 @@
+<RelativeLayout
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <Switch
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Service On/Off"
+        android:id="@+id/switch1"
+        android:layout_marginTop="20dp"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Wifi"
+        android:id="@+id/checkbox"
+        android:layout_below="@+id/switch1"
+        android:layout_toStartOf="@+id/switch1"
+        android:layout_marginTop="25dp"
+        android:width="440dp"
+        android:onClick="myClickHandler" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Watch for: "
+        android:id="@+id/textView"
+        android:layout_below="@+id/checkbox"
+        android:layout_alignLeft="@+id/checkbox"
+        android:layout_alignStart="@+id/checkbox"
+        android:layout_marginTop="23dp"
+        android:textSize="20dp" />
+
+    <Spinner
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/wifi_watch_spin"
+        android:layout_toEndOf="@+id/textView2"
+        android:spinnerMode="dropdown"
+        android:layout_alignTop="@+id/textView"
+        android:layout_toRightOf="@+id/textView2" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Respond with: "
+        android:id="@+id/textView2"
+        android:layout_below="@+id/wifi_watch_spin"
+        android:layout_alignLeft="@+id/textView"
+        android:layout_alignStart="@+id/textView"
+        android:textSize="20dp" />
+
+    <Spinner
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/wifi_respond_spin"
+        android:layout_alignTop="@+id/textView2"
+        android:layout_toRightOf="@+id/textView2"
+        android:layout_toEndOf="@+id/textView2" />
+    <RadioGroup
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/wifi_respond_spin"
+        android:layout_alignLeft="@+id/textView2"
+        android:layout_alignStart="@+id/textView2"
+        android:id="@+id/radioGroup">
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="After event"
+            android:id="@+id/event_button"
+            android:checked="false"
+            android:textSize="20dp"
+            android:onClick="myClickHandler" />
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="After interval"
+            android:id="@+id/interval_button"
+            android:checked="false"
+            android:textSize="20dp"
+            android:layout_marginTop="40dp"
+            android:onClick="myClickHandler" />
+
+
+    </RadioGroup>
+
+    <Spinner
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/wifi_event_spin"
+        android:layout_toEndOf="@+id/textView2"
+        android:layout_below="@+id/wifi_respond_spin"
+        android:layout_alignTop="@+id/radioGroup"
+        android:layout_toRightOf="@+id/radioGroup" />
+
+    <Spinner
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/wifi_interval_spin"
+        android:layout_alignBottom="@+id/radioGroup"
+        android:layout_below="@+id/wifi_event_spin"
+        android:layout_toRightOf="@+id/radioGroup" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="(Click to enable)"
+        android:id="@+id/textView3"
+        android:layout_toEndOf="@+id/checkbox"
+        android:textSize="30dp"
+        android:layout_alignTop="@+id/checkbox"
+        android:layout_toRightOf="@+id/checkbox" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Apply Changes"
+        android:id="@+id/save_button"
+        android:layout_marginTop="35dp"
+        android:layout_below="@+id/wifi_interval_spin"
+        android:layout_centerHorizontal="true"
+        android:onClick="myClickHandler" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/save_text"
+        android:textSize="40dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:visibility="invisible" />
+
+
+</RelativeLayout>
