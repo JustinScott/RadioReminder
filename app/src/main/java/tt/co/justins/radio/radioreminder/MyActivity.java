@@ -1,7 +1,6 @@
 package tt.co.justins.radio.radioreminder;
 
 import android.app.Activity;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
@@ -9,18 +8,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.RadioButton;
 import android.widget.Spinner;
 import android.widget.TextView;
 
 
 public class MyActivity extends Activity implements AdapterView.OnItemSelectedListener {
-
-    private static final String ACTION_SETUP = "tt.co.justins.radio.radioreminder.action.SETUP";
-    private static final String ACTION_SHUT_DOWN = "tt.co.justins.radio.radioreminder.action.SHUTDOWN";
-
-    private static final String EXTRA_PARAM1 = "tt.co.justins.radio.radioreminder.extra.PARAM1";
-    private static final String EXTRA_PARAM2 = "tt.co.justins.radio.radioreminder.extra.PARAM2";
 
     private Spinner wifiWatchSpin;
     private Spinner wifiRespondSpin;
@@ -32,10 +24,11 @@ public class MyActivity extends Activity implements AdapterView.OnItemSelectedLi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my);
 
+        //start the service, and tell it to set up it's state
         Intent intent = new Intent(this, RadioService.class);
-        intent.setAction(ACTION_SETUP);
-        intent.putExtra(EXTRA_PARAM1, "");
-        intent.putExtra(EXTRA_PARAM2, "");
+        intent.setAction(RadioService.SERVICE_SETUP);
+        intent.putExtra(RadioService.EXTRA_PARAM1, "");
+        intent.putExtra(RadioService.EXTRA_PARAM2, "");
         startService(intent);
     }
 
@@ -57,6 +50,9 @@ public class MyActivity extends Activity implements AdapterView.OnItemSelectedLi
         ArrayAdapter<CharSequence> adapter3 = ArrayAdapter.createFromResource(this, R.array.intervals, android.R.layout.simple_spinner_item);
         adapter3.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
+        //populate spinners with data
+        //and assign the method that is called when an item is selected
+        //this class needs to implement the OnItemSelectedListener interface for this to work
         wifiWatchSpin.setAdapter(adapter);
         wifiWatchSpin.setOnItemSelectedListener(this);
         wifiRespondSpin.setAdapter(adapter);
@@ -93,6 +89,8 @@ public class MyActivity extends Activity implements AdapterView.OnItemSelectedLi
             case R.id.save_button:
                 Event myEvent = new Event();
 
+                myEvent.serviceType = RadioService.SERVICE_WIFI;
+
                 if(wifiWatchSpin.toString().equals("Radio On"))
                     myEvent.watchAction = RadioService.ACTION_WIFI_ON;
                 else if(wifiWatchSpin.toString().equals("Radio Off"))
@@ -104,9 +102,15 @@ public class MyActivity extends Activity implements AdapterView.OnItemSelectedLi
                     myEvent.respondAction = RadioService.ACTION_WIFI_OFF;
 
                 if(wifiEventSpin.toString().equals("Plugged In"))
-                    myEvent.afterAction = RadioService.ACTION_POWER_CONNECTED;
+                    myEvent.waitAction = RadioService.ACTION_POWER_CONNECTED;
 
-                myEvent.afterInterval = Float.parseFloat(wifiIntervalSpin.toString());
+                //myEvent.waitInterval = Float.parseFloat(wifiIntervalSpin.toString());
+
+                //send event to the service
+                Intent intent = new Intent(this, RadioService.class);
+                intent.setAction(RadioService.SERVICE_EVENT);
+                intent.putExtra(RadioService.EXTRA_EVENT, myEvent);
+                startService(intent);
 
                 saveText.setText("Changes saved");
 

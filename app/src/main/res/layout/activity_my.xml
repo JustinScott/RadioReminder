@@ -61,10 +61,19 @@
         android:layout_alignTop="@+id/textView2"
         android:layout_toRightOf="@+id/textView2"
         android:layout_toEndOf="@+id/textView2" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Delay response until this condition is met:"
+        android:id="@+id/textView4"
+        android:layout_below="@+id/wifi_respond_spin"
+        android:textSize="20dp"/>
+
     <RadioGroup
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/wifi_respond_spin"
+        android:layout_below="@+id/textView4"
         android:layout_alignLeft="@+id/textView2"
         android:layout_alignStart="@+id/textView2"
         android:id="@+id/radioGroup">
@@ -88,6 +97,14 @@
             android:layout_marginTop="40dp"
             android:onClick="onClick" />
 
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="None event"
+            android:id="@+id/none_button"
+            android:checked="false"
+            android:textSize="20dp"
+            android:onClick="onClick" />
 
     </RadioGroup>
 
