@@ -27,30 +27,24 @@ public class RadioService extends Service {
     public static final String ACTION_WIFI_OFF = "tt.co.justins.radio.radioreminder.action.WIFI_OFF";
     public static final String ACTION_POWER_CONNECTED = "tt.co.justins.radio.radioreminder.action.POWER_ON";
 
-    public static final String EXTRA_PARAM1 = "tt.co.justins.radio.radioreminder.extra.PARAM1";
-    public static final String EXTRA_PARAM2 = "tt.co.justins.radio.radioreminder.extra.PARAM2";
-
     public static final int SERVICE_WIFI = 0;
 
     private static final String tag = "radioreminder";
 
-
-    private static int mId;
-    private boolean waiting = false;
+    private static int notificationId;
 
     private ConnectivityReceiver wifiReceiver;
     private ConnectivityReceiver batteryReceiver;
 
-    private List<Event> eventList = new ArrayList<Event>();
+   private List<Event> eventList;
 
-    public RadioService() {
-    }
-
-    @Override
     //grab the Action from the intent and call the action's handler
+    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
-            switch(intent.getAction()) {
+            String action = intent.getAction();
+            Log.d(tag, "Service started with action: " + action);
+            switch(action) {
                 case SERVICE_SETUP:
                     handleActionSetup();
                     break;
@@ -58,12 +52,13 @@ public class RadioService extends Service {
                     handleActionExit();
                     break;
                 case SERVICE_EVENT:
+                    //get the serialized event object and add it to the list
                     Event event = (Event) intent.getSerializableExtra(EXTRA_EVENT);
                     addNewEvent(event);
                     break;
                 case ACTION_WIFI_OFF:
                 case ACTION_POWER_CONNECTED:
-                    processAction(intent.getAction());
+                    processAction(action);
                     break;
                 default:
             }
@@ -71,6 +66,8 @@ public class RadioService extends Service {
         return START_STICKY;
     }
 
+    //add event to the list of events the service watches for
+    //only allows one event per service type
     private void addNewEvent(Event event) {
         for(Event e : eventList) {
             if(e.serviceType == event.serviceType) {
@@ -80,39 +77,50 @@ public class RadioService extends Service {
         }
         eventList.add(event);
         Log.d(tag, "Added event to list. Count: " + eventList.size());
-
-        sendNotification("Service activated");
-
     }
 
+    //if match is found check to see if the event needs to wait for some time or another event
+    //if not execute the event
     private void processAction(String action) {
+        //cycle through the event list to see if any of the events are looking for this watch action
+        Log.d(tag, "Processing action: " + action);
         for(Event e : eventList) {
             if (e.watchAction.equals(action)) {
-                if(e.state == Event.NOT_WAITING) {
-                    executeEvent(e);
+                //mark the event so it knows the watch action has occured
+                Log.d(tag, "Watch action for event (" + eventList.indexOf(e) + ") detected: " + action);
+                if(e.waitAction != null) {
+                    e.state = Event.WAITING;
+                    Log.d(tag, "Putting the event in the waiting STATE");
+                }
+                //mark the event so it knows the watch action has occured
+                else if(e.waitInterval != 0) {
+                    if(e.state == Event.NOT_WAITING) {
+                        //set timer then call execute event
+                    }
+                    e.state = Event.WAITING;
                     return;
                 }
-                else if(e.waitInterval != 0) {
-                    //set timer then call execute event
-                    return;
+                //event doesn't require a delay, so execute immediately
+                else {
+                    executeEvent(e);
                 }
             }
         }
 
+        //cycle through the list and see if any of the events are waiting for this action
         for(Event e : eventList) {
             if (e.waitAction.equals(action)) {
                 if(e.state == Event.WAITING) {
+                    Log.d(tag, "Wait action for event (" + eventList.indexOf(e) + ") detected: " + action);
                     executeEvent(e);
                     return;
                 }
             }
         }
-        //sendNotification("Waiting to get plugged in before restarting wifi");
-        //Log.d(tag, "Notification sent");
-        //waiting = true;
     }
 
     private void executeEvent(Event e) {
+        Log.d(tag, "Executing event (" + eventList.indexOf(e) + ") with action:" + e.respondAction);
         switch(e.respondAction) {
             case ACTION_WIFI_OFF:
                 disableWifi();
@@ -121,18 +129,30 @@ public class RadioService extends Service {
                 enableWifi();
                 break;
         }
+        removeEvent(e);
+    }
+
+    private void removeEvent(Event e) {
+        Log.d(tag, "Removing event (" + eventList.indexOf(e) + ") from list.");
+        Log.d(tag, "-- Watch: " + e.watchAction);
+        Log.d(tag, "-- Response: " + e.respondAction);
+        if(e.watchAction != null)
+            Log.d(tag, "-- Wait Action: " + e.watchAction);
+        else if(e.waitInterval != 0)
+            Log.d(tag, "-- Wait Interval: " + e.waitInterval);
+        else
+            Log.d(tag, "-- No Wait Specified");
+
+        eventList.remove(e);
     }
 
     private void disableWifi() {
-        //turn off wifi
         WifiManager wifiMan = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         wifiMan.setWifiEnabled(false);
         Log.d(tag, "WIFI Disabled");
-
     }
 
     private void enableWifi() {
-        //turn on wifi
         WifiManager wifiMan = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         wifiMan.setWifiEnabled(true);
         Log.d(tag, "WIFI Enabled");
@@ -150,23 +170,20 @@ public class RadioService extends Service {
         mBuilder.setContentIntent(pendingIntent);
 
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.notify(mId, mBuilder.build());
+        mNotificationManager.notify(notificationId, mBuilder.build());
     }
 
-    //This fucnction is called when the device is plugged in to a power source
-    private void handleActionPowerConnected(String param1, String param2) {
-        //remove notification
+    private void removeNotification(int notificationId) {
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.cancel(mId);
+        mNotificationManager.cancel(notificationId);
         Log.d(tag, "Notification removed");
-
-        waiting = false;
     }
 
     //initialize all the receivers for the services that are being watched
     private void handleActionSetup() {
         wifiReceiver = new ConnectivityReceiver();
         batteryReceiver = new ConnectivityReceiver();
+        eventList = MyActivity.eventList;
 
         registerReceiver(wifiReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         Log.d(tag, "Registered CONNECTIVITY_ACTION receiver");
@@ -181,6 +198,7 @@ public class RadioService extends Service {
         unregisterReceiver(batteryReceiver);
         Log.d(tag, "Unregistered ACTION_POWER_CONNECTED receiver");
     }
+
     @Override
     public IBinder onBind(Intent intent) {
         return null;

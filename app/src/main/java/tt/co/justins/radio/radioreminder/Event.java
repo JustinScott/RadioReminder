@@ -27,5 +27,6 @@ public class Event implements Serializable {
     public int state;
 
     public Event() {
+        state = NOT_WAITING;
     }
 }

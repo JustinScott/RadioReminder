@@ -9,12 +9,6 @@ import android.os.Bundle;
 import android.util.Log;
 
 public class ConnectivityReceiver extends BroadcastReceiver {
-    private static final String EXTRA_PARAM1 = "tt.co.justins.radio.radioreminder.extra.PARAM1";
-    private static final String EXTRA_PARAM2 = "tt.co.justins.radio.radioreminder.extra.PARAM2";
-
-    public ConnectivityReceiver() {
-    }
-
     private Context context = null;
 
     @Override
@@ -37,7 +31,7 @@ public class ConnectivityReceiver extends BroadcastReceiver {
                     }
                     else if(netInfo.getState() == NetworkInfo.State.DISCONNECTED) {
                         Log.d(tag, "WIFI DISCONNECTED");
-                        sendIntent(RadioService.ACTION_WIFI_OFF, "", "");
+                        sendIntent(RadioService.ACTION_WIFI_OFF);
                     }
                 }
             }
@@ -48,15 +42,13 @@ public class ConnectivityReceiver extends BroadcastReceiver {
 
         if(intent.getAction() == Intent.ACTION_POWER_CONNECTED) {
             Log.d(tag, "POWER CONNECTED");
-            sendIntent(RadioService.ACTION_POWER_CONNECTED, "", "");
+            sendIntent(RadioService.ACTION_POWER_CONNECTED);
         }
     }
 
-    private void sendIntent(String action, String param1, String param2) {
+    private void sendIntent(String action) {
         Intent intent = new Intent(context, RadioService.class);
         intent.setAction(action);
-        intent.putExtra(EXTRA_PARAM1, param1);
-        intent.putExtra(EXTRA_PARAM2, param2);
         context.startService(intent);
     }
 }
