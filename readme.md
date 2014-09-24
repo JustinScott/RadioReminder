@@ -6,9 +6,14 @@ This is a service that watches for certain events and responds by executing a sp
 
 For instance, it can watch for 
 "turning wifi off" and respond with "turning wifi on" in "30 mins"
+
 or
+
 "turning wifi off" and respond with "turning wifi on" when device is "plugged in"
+
 or
+
 "turning bluetooth on" and respond with "turn bluetooth off" in "60 mins"
+
 
 The core functionality is in place so, added new types of events shouldn't be difficult.
