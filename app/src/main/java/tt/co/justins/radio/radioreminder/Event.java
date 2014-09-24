@@ -23,7 +23,7 @@ public class Event implements Serializable {
     public String watchAction;
     public String respondAction;
     public String waitAction;
-    public float waitInterval;
+    public int waitInterval;
     public int state;
 
     public Event() {

@@ -8,8 +8,8 @@
     <string name="section2">Delay response until this condition is met:</string>
 
     <string-array name="radio_state">
-        <item>Radio On</item>
-        <item>Radio Off</item>
+        <item>WIFI Radio On</item>
+        <item>WIFI Radio Off</item>
     </string-array>
     <string-array name="my_events">
         <item>Plugged In</item>

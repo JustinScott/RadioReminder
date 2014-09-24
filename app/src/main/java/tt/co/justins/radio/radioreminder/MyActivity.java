@@ -30,10 +30,10 @@ public class MyActivity extends FragmentActivity {
         startService(intent);
 
         Event e = new Event();
-        e.waitInterval = 0;
-        e.waitAction = null;
+        e.waitInterval = 120;
+        e.waitAction = RadioService.ACTION_POWER_CONNECTED;
         e.watchAction = RadioService.ACTION_WIFI_OFF;
-        e.respondAction = RadioService.ACTION_WIFI_ON;
+        e.respondAction = RadioService.ACTION_WIFI_OFF;
         eventList.add(e);
 
         pager = (ViewPager) findViewById(R.id.view_pager);

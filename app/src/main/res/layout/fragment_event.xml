@@ -70,6 +70,7 @@
             android:layout_height="wrap_content"
             android:text="After interval"
             android:id="@+id/delay_interval_button"
+            android:layout_marginTop="10dp"
             android:checked="false"
             android:textSize="20dp" />
 
@@ -78,6 +79,7 @@
             android:layout_height="wrap_content"
             android:text="No delay"
             android:id="@+id/delay_none_button"
+            android:layout_marginTop="10dp"
             android:checked="true"
             android:textSize="20dp" />
     </RadioGroup>
@@ -89,12 +91,41 @@
         android:layout_alignTop="@+id/radioGroup"
         android:layout_toRightOf="@+id/radioGroup" />
 
-    <Spinner
-        android:layout_width="wrap_content"
+    <EditText
+        android:layout_width="60dp"
         android:layout_height="wrap_content"
-        android:id="@+id/wifi_interval_spin"
+        android:inputType="number"
+        android:ems="10"
+        android:id="@+id/editText3"
         android:layout_below="@+id/wifi_event_spin"
         android:layout_toRightOf="@+id/radioGroup" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="hours"
+        android:id="@+id/hour_text"
+        android:layout_alignBottom="@+id/editText3"
+        android:layout_toRightOf="@+id/editText3"
+        android:textSize="20dp"/>
+
+    <EditText
+        android:layout_width="60dp"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:ems="10"
+        android:id="@+id/editText4"
+        android:layout_below="@+id/wifi_event_spin"
+        android:layout_toRightOf="@+id/hour_text" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="mins"
+        android:id="@+id/min_text"
+        android:layout_alignBottom="@+id/editText4"
+        android:layout_toRightOf="@+id/editText4"
+        android:textSize="20dp"/>
 
     <Button
         android:layout_width="wrap_content"
@@ -102,9 +133,8 @@
         android:text="Apply Changes"
         android:id="@+id/save_button"
         android:layout_marginTop="35dp"
-        android:layout_below="@+id/wifi_interval_spin"
         android:layout_centerHorizontal="true"
-        android:onClick="onClick" />
+        android:layout_below="@+id/radioGroup" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -114,5 +144,8 @@
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         android:visibility="invisible" />
+
+
+
 
 </RelativeLayout>
