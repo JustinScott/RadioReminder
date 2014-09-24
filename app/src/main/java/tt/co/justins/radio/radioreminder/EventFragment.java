@@ -12,24 +12,30 @@ import android.support.v4.app.Fragment;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 
 public class EventFragment extends Fragment implements AdapterView.OnItemSelectedListener, View.OnClickListener{
     private static final String ARG_PARAM1 = "param1";
+    private static final String ARG_PARAM2 = "param2";
 
     private Event mEvent;
+    private int mListPosition;
 
     private Spinner watchSpinner;
     private Spinner respondSpinner;
     private Spinner waitEventSpinner;
-    private Spinner waitIntervalSpinner;
 
-    public static EventFragment newInstance(Event event) {
+    private EditText hoursEdit;
+    private EditText minsEdit;
+
+    public static EventFragment newInstance(Event event, int listPosition) {
         EventFragment fragment = new EventFragment();
         Bundle args = new Bundle();
         args.putSerializable(ARG_PARAM1, event);
+        args.putInt(ARG_PARAM2, listPosition);
         fragment.setArguments(args);
         return fragment;
     }
@@ -54,15 +60,14 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         saveText.setText("Changes not saved");
         saveText.setVisibility(View.VISIBLE);
 
-        switch(getView().getId()) {
+        switch(v.getId()) {
             //clicked the apply button
             //parse all the option selections and build an event object
             case R.id.save_button:
-                Event myEvent = new Event();
-
-                myEvent.serviceType = RadioService.SERVICE_WIFI;
-                myEvent.watchAction = getSelectedSpinnerItemAsAction(watchSpinner);
-                myEvent.respondAction = getSelectedSpinnerItemAsAction(respondSpinner);
+                Log.d("radioreminder", "Saving settings and sending the event to radio service");
+                mEvent.serviceType = RadioService.SERVICE_WIFI;
+                mEvent.watchAction = getSelectedSpinnerItemAsAction(watchSpinner);
+                mEvent.respondAction = getSelectedSpinnerItemAsAction(respondSpinner);
 
                 //determine which delay was selected
                 RadioGroup buttonGroup = (RadioGroup) getView().findViewById(R.id.radioGroup);
@@ -70,21 +75,26 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
 
                 switch (buttonId) {
                     case R.id.delay_event_button:
-                        myEvent.waitAction = getSelectedSpinnerItemAsAction(waitEventSpinner);
+                        mEvent.waitAction = getSelectedSpinnerItemAsAction(waitEventSpinner);
+                        mEvent.waitInterval = 0;
                         break;
                     case R.id.delay_interval_button:
-                        //myEvent.waitInterval = Float.parseFloat(waitIntervalSpinner.toString());
-                        String hours = (EditText) getView().findViewById(R.id.hour_text).getText();
+                        int hours = Integer.parseInt(hoursEdit.getText().toString());
+                        int mins = Integer.parseInt(minsEdit.getText().toString());
+                        mEvent.waitInterval = hours * 60 + mins;
+                        mEvent.waitAction = null;
                         break;
                     case R.id.delay_none_button:
-                        //event class is initialized with values that indicate no delay
+                        mEvent.waitAction = null;
+                        mEvent.waitInterval = 0;
                         break;
                 }
 
                 //send event to the service
                 Intent intent = new Intent(getView().getContext(), RadioService.class);
                 intent.setAction(RadioService.SERVICE_EVENT);
-                intent.putExtra(RadioService.EXTRA_EVENT, myEvent);
+                intent.putExtra(RadioService.EXTRA_EVENT_POSITION, mListPosition);
+                intent.putExtra(RadioService.EXTRA_EVENT, mEvent);
                 getView().getContext().startService(intent);
 
                 saveText.setText("Changes saved");
@@ -135,8 +145,9 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
                              Bundle savedInstanceState) {
         if (getArguments() != null) {
             mEvent = (Event) getArguments().getSerializable(ARG_PARAM1);
+            mListPosition = getArguments().getInt(ARG_PARAM2);
         } else {
-            mEvent = new Event();
+            //mEvent = new Event();
         }
 
         // Inflate the layout for this fragment
@@ -146,38 +157,56 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         watchSpinner = (Spinner) v.findViewById(R.id.wifi_watch_spin);
         respondSpinner = (Spinner) v.findViewById(R.id.wifi_respond_spin);
         waitEventSpinner = (Spinner) v.findViewById(R.id.wifi_event_spin);
-        //waitIntervalSpinner = (Spinner) v.findViewById(R.id.wifi_interval_spin);
+
+        hoursEdit = (EditText) v.findViewById(R.id.hour_edit);
+        minsEdit = (EditText) v.findViewById(R.id.min_edit);
 
         // Create the adapters that are needed to populate the spinners with values
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(v.getContext(), R.array.radio_state, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
-        ArrayAdapter<CharSequence> adapter2 = ArrayAdapter.createFromResource(v.getContext(), R.array.my_events, android.R.layout.simple_spinner_item);
-        adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        //ArrayAdapter<CharSequence> adapter2 = ArrayAdapter.createFromResource(v.getContext(), R.array.my_events, android.R.layout.simple_spinner_item);
+        //adapter2.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
         //ArrayAdapter<CharSequence> adapter3 = ArrayAdapter.createFromResource(v.getContext(), R.array.intervals, android.R.layout.simple_spinner_item);
         //adapter3.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
-        //populate spinners with data
-        //and assign the method that is called when an item is selected
-        //this class needs to implement the OnItemSelectedListener interface for this to work
+        //populate spinners with list of values
         watchSpinner.setAdapter(adapter);
-        // watchSpinner.setOnItemSelectedListener(this);
         respondSpinner.setAdapter(adapter);
+        waitEventSpinner.setAdapter(adapter);
+
+        //this class needs to implement the OnItemSelectedListener interface for this to work
         //respondSpinner.setOnItemSelectedListener(this);
-        waitEventSpinner.setAdapter(adapter2);
         //waitEventSpinner.setOnItemSelectedListener(this);
-        //waitIntervalSpinner.setAdapter(adapter3);
-        //waitIntervalSpinner.setOnItemSelectedListener(this);
+        //watchSpinner.setOnItemSelectedListener(this);
 
-        waitEventSpinner.setSelection(getSpinnerSelectionFromAction(mEvent.waitAction));
-        respondSpinner.setSelection(getSpinnerSelectionFromAction(mEvent.respondAction));
-        watchSpinner.setSelection(getSpinnerSelectionFromAction(mEvent.watchAction));
+        //on click listeners
+        RadioButton delayEventButton = (RadioButton) v.findViewById(R.id.delay_event_button);
+        RadioButton delayIntervalButton = (RadioButton) v.findViewById(R.id.delay_interval_button);
+        RadioButton delayNoneButton = (RadioButton) v.findViewById(R.id.delay_none_button);
 
-        v.findViewById(R.id.delay_event_button).setOnClickListener(this);
-        v.findViewById(R.id.delay_interval_button).setOnClickListener(this);
-        v.findViewById(R.id.delay_none_button).setOnClickListener(this);
+        delayNoneButton.setOnClickListener(this);
+        delayIntervalButton.setOnClickListener(this);
+        delayEventButton.setOnClickListener(this);
         v.findViewById(R.id.save_button).setOnClickListener(this);
+
+        //fill the controls with the values from the event
+        watchSpinner.setSelection(getSpinnerSelectionFromAction(mEvent.watchAction));
+        respondSpinner.setSelection(getSpinnerSelectionFromAction(mEvent.respondAction));
+
+        if(mEvent.waitAction != null) {
+            waitEventSpinner.setSelection(getSpinnerSelectionFromAction(mEvent.waitAction));
+            delayEventButton.setChecked(true);
+        }
+        else if(mEvent.waitInterval != 0) {
+            hoursEdit.setText((mEvent.waitInterval / 60) + "");
+            minsEdit.setText((mEvent.waitInterval % 60) + "");
+            delayIntervalButton.setChecked(true);
+        }
+        else {
+            delayNoneButton.setChecked(true);
+        }
 
         return v;
     }

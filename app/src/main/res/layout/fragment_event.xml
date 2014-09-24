@@ -96,17 +96,16 @@
         android:layout_height="wrap_content"
         android:inputType="number"
         android:ems="10"
-        android:id="@+id/editText3"
+        android:id="@+id/hour_edit"
         android:layout_below="@+id/wifi_event_spin"
         android:layout_toRightOf="@+id/radioGroup" />
-
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="hours"
-        android:id="@+id/hour_text"
-        android:layout_alignBottom="@+id/editText3"
-        android:layout_toRightOf="@+id/editText3"
+        android:id="@+id/textView5"
+        android:layout_alignBottom="@+id/hour_edit"
+        android:layout_toRightOf="@+id/hour_edit"
         android:textSize="20dp"/>
 
     <EditText
@@ -114,17 +113,17 @@
         android:layout_height="wrap_content"
         android:inputType="number"
         android:ems="10"
-        android:id="@+id/editText4"
+        android:id="@+id/min_edit"
         android:layout_below="@+id/wifi_event_spin"
-        android:layout_toRightOf="@+id/hour_text" />
+        android:layout_toRightOf="@+id/textView5" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="mins"
-        android:id="@+id/min_text"
-        android:layout_alignBottom="@+id/editText4"
-        android:layout_toRightOf="@+id/editText4"
+        android:id="@+id/textView6"
+        android:layout_alignBottom="@+id/min_edit"
+        android:layout_toRightOf="@+id/min_edit"
         android:textSize="20dp"/>
 
     <Button
@@ -144,8 +143,5 @@
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         android:visibility="invisible" />
-
-
-
 
 </RelativeLayout>

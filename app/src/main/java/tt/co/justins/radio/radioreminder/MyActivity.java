@@ -31,7 +31,7 @@ public class MyActivity extends FragmentActivity {
 
         Event e = new Event();
         e.waitInterval = 120;
-        e.waitAction = RadioService.ACTION_POWER_CONNECTED;
+        e.waitAction = null;
         e.watchAction = RadioService.ACTION_WIFI_OFF;
         e.respondAction = RadioService.ACTION_WIFI_OFF;
         eventList.add(e);

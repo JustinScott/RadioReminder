@@ -12,7 +12,7 @@ public class FragmentAdapter extends FragmentStatePagerAdapter {
     @Override
     public Fragment getItem(int i) {
         Fragment fragment;
-        fragment = EventFragment.newInstance(MyActivity.eventList.get(i));
+        fragment = EventFragment.newInstance(MyActivity.eventList.get(i), i);
         return fragment;
     }
 

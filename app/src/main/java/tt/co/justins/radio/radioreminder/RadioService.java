@@ -22,6 +22,7 @@ public class RadioService extends Service {
     public static final String SERVICE_EVENT = "tt.co.justins.radio.radioreminder.action.EVENT";
 
     public static final String EXTRA_EVENT = "tt.co.justins.radio.radioreminder.extra.EVENT";
+    public static final String EXTRA_EVENT_POSITION = "tt.co.justins.radio.radioreminder.extra.EVENT_POSITION";
 
     public static final String ACTION_WIFI_ON = "tt.co.justins.radio.radioreminder.action.WIFI_ON";
     public static final String ACTION_WIFI_OFF = "tt.co.justins.radio.radioreminder.action.WIFI_OFF";
@@ -36,7 +37,7 @@ public class RadioService extends Service {
     private ConnectivityReceiver wifiReceiver;
     private ConnectivityReceiver batteryReceiver;
 
-   private List<Event> eventList;
+    private List<Event> eventList;
 
     //grab the Action from the intent and call the action's handler
     @Override
@@ -48,14 +49,23 @@ public class RadioService extends Service {
                 case SERVICE_SETUP:
                     handleActionSetup();
                     break;
+
                 case SERVICE_EXIT:
                     handleActionExit();
                     break;
+
                 case SERVICE_EVENT:
                     //get the serialized event object and add it to the list
                     Event event = (Event) intent.getSerializableExtra(EXTRA_EVENT);
-                    addNewEvent(event);
+                    //if this extra is present, this event replaces an existing event in the list
+                    int position = intent.getIntExtra(EXTRA_EVENT_POSITION, -1);
+
+                    if(position == -1)
+                        addNewEvent(event);
+                    else
+                        updateEvent(event, position);
                     break;
+
                 case ACTION_WIFI_OFF:
                 case ACTION_POWER_CONNECTED:
                     processAction(action);
@@ -64,6 +74,13 @@ public class RadioService extends Service {
             }
         }
         return START_STICKY;
+    }
+
+    //replace the event at position in the eventlist with this new event
+    private void updateEvent(Event event, int position) {
+        eventList.set(position, event);
+        Log.d(tag, "Updated event at position " + position + " in the event list.");
+        logEvent(event);
     }
 
     //add event to the list of events the service watches for
@@ -77,6 +94,7 @@ public class RadioService extends Service {
         }
         eventList.add(event);
         Log.d(tag, "Added event to list. Count: " + eventList.size());
+        logEvent(event);
     }
 
     //if match is found check to see if the event needs to wait for some time or another event
@@ -134,16 +152,19 @@ public class RadioService extends Service {
 
     private void removeEvent(Event e) {
         Log.d(tag, "Removing event (" + eventList.indexOf(e) + ") from list.");
+        logEvent(e);
+        eventList.remove(e);
+    }
+
+    private void logEvent(Event e) {
         Log.d(tag, "-- Watch: " + e.watchAction);
         Log.d(tag, "-- Response: " + e.respondAction);
-        if(e.watchAction != null)
-            Log.d(tag, "-- Wait Action: " + e.watchAction);
+        if(e.waitAction != null)
+            Log.d(tag, "-- Wait Action: " + e.waitAction);
         else if(e.waitInterval != 0)
             Log.d(tag, "-- Wait Interval: " + e.waitInterval);
         else
             Log.d(tag, "-- No Wait Specified");
-
-        eventList.remove(e);
     }
 
     private void disableWifi() {

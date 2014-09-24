@@ -2,10 +2,6 @@ package tt.co.justins.radio.radioreminder;
 
 import java.io.Serializable;
 
-/**
- * Created by Justin on 9/21/2014.
- */
-
 /*
 This class describes the event to watch for and how to respond to that event
 serviceType -

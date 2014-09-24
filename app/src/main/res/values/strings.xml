@@ -10,6 +10,7 @@
     <string-array name="radio_state">
         <item>WIFI Radio On</item>
         <item>WIFI Radio Off</item>
+        <item>Plugged In</item>
     </string-array>
     <string-array name="my_events">
         <item>Plugged In</item>
