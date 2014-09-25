@@ -79,8 +79,22 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
                         mEvent.waitInterval = 0;
                         break;
                     case R.id.delay_interval_button:
-                        int hours = Integer.parseInt(hoursEdit.getText().toString());
-                        int mins = Integer.parseInt(minsEdit.getText().toString());
+                        String sHour = hoursEdit.getText().toString();
+                        String sMin = minsEdit.getText().toString();
+                        int hours;
+                        int mins;
+
+                        //parsing a string so check for empty string
+                        if(sHour.equals(""))
+                            hours = 0;
+                        else
+                            hours = Integer.parseInt(sHour);
+
+                        if(sMin.equals(""))
+                            mins = 0;
+                        else
+                            mins = Integer.parseInt(sMin);
+
                         mEvent.waitInterval = hours * 60 + mins;
                         mEvent.waitAction = null;
                         break;

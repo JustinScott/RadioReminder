@@ -29,12 +29,12 @@ public class MyActivity extends FragmentActivity {
         intent.setAction(RadioService.SERVICE_SETUP);
         startService(intent);
 
-        Event e = new Event();
-        e.waitInterval = 120;
-        e.waitAction = null;
-        e.watchAction = RadioService.ACTION_WIFI_OFF;
-        e.respondAction = RadioService.ACTION_WIFI_OFF;
-        eventList.add(e);
+//        Event e = new Event();
+//        e.waitInterval = 120;
+//        e.waitAction = null;
+//        e.watchAction = RadioService.ACTION_WIFI_OFF;
+//        e.respondAction = RadioService.ACTION_WIFI_OFF;
+//        eventList.add(e);
 
         pager = (ViewPager) findViewById(R.id.view_pager);
         FragmentManager manager = this.getSupportFragmentManager();
@@ -43,11 +43,23 @@ public class MyActivity extends FragmentActivity {
     }
 
     public void onClick(View v) {
-        if(v.getId() == R.id.new_event_button) {
-            Log.d("radioreminder", "New event added to list");
-            Event e = new Event();
-            eventList.add(e);
-            pager.getAdapter().notifyDataSetChanged();
+        switch(v.getId()) {
+            case R.id.new_event_button:
+                Log.d("radioreminder", "New event added to list");
+                Event e = new Event();
+                eventList.add(e);
+                pager.getAdapter().notifyDataSetChanged();
+                break;
+            case R.id.delete_event_button:
+                int currentPosition = pager.getCurrentItem();
+
+                eventList.remove(currentPosition);
+                pager.getAdapter().notifyDataSetChanged();
+                if(currentPosition > eventList.size())
+                    pager.setCurrentItem(currentPosition - 1);
+                else
+
+                break;
         }
     }
 

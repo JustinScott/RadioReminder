@@ -14,6 +14,8 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class RadioService extends Service {
 
@@ -38,6 +40,7 @@ public class RadioService extends Service {
     private ConnectivityReceiver batteryReceiver;
 
     private List<Event> eventList;
+    private Timer timer;
 
     //grab the Action from the intent and call the action's handler
     @Override
@@ -114,6 +117,7 @@ public class RadioService extends Service {
                 else if(e.waitInterval != 0) {
                     if(e.state == Event.NOT_WAITING) {
                         //set timer then call execute event
+                        executeDelayedEvent(e);
                     }
                     e.state = Event.WAITING;
                     return;
@@ -137,6 +141,25 @@ public class RadioService extends Service {
         }
     }
 
+    private class WaitTask extends TimerTask {
+        Event e;
+
+        private WaitTask(Event e) {
+            this.e = e;
+        }
+
+        @Override
+        public void run() {
+            executeEvent(e);
+        }
+    }
+
+    private void executeDelayedEvent(Event e) {
+        Log.d(tag, "Scheduling event (" + eventList.indexOf(e) + ") to execute in " + e.waitInterval + " mins.");
+        timer = new Timer();
+        timer.schedule(new WaitTask(e), (e.waitInterval * 60 * 1000));
+    }
+
     private void executeEvent(Event e) {
         Log.d(tag, "Executing event (" + eventList.indexOf(e) + ") with action:" + e.respondAction);
         switch(e.respondAction) {
@@ -147,7 +170,7 @@ public class RadioService extends Service {
                 enableWifi();
                 break;
         }
-        removeEvent(e);
+        //removeEvent(e);
     }
 
     private void removeEvent(Event e) {
@@ -162,9 +185,9 @@ public class RadioService extends Service {
         if(e.waitAction != null)
             Log.d(tag, "-- Wait Action: " + e.waitAction);
         else if(e.waitInterval != 0)
-            Log.d(tag, "-- Wait Interval: " + e.waitInterval);
+            Log.d(tag, "-- Wait Interval: " + e.waitInterval + " mins.");
         else
-            Log.d(tag, "-- No Wait Specified");
+            Log.d(tag, "-- No Wait Specified.");
     }
 
     private void disableWifi() {
