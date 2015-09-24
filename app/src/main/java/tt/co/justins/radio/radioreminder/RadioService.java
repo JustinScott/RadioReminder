@@ -1,15 +1,18 @@
 package tt.co.justins.radio.radioreminder;
 
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
+import android.os.Binder;
 import android.os.IBinder;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -17,7 +20,7 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class RadioService extends Service {
+public class RadioService extends Service{
 
     public static final String SERVICE_SETUP = "tt.co.justins.radio.radioreminder.action.SETUP";
     public static final String SERVICE_EXIT = "tt.co.justins.radio.radioreminder.action.EXIT";
@@ -28,33 +31,55 @@ public class RadioService extends Service {
 
     public static final String ACTION_WIFI_ON = "tt.co.justins.radio.radioreminder.action.WIFI_ON";
     public static final String ACTION_WIFI_OFF = "tt.co.justins.radio.radioreminder.action.WIFI_OFF";
+    public static final String ACTION_BLUETOOTH_ON = "tt.co.justins.radio.radioreminder.action.BLUETOOTH_ON";
+    public static final String ACTION_BLUETOOTH_OFF = "tt.co.justins.radio.radioreminder.action.BLUETOOTH_OFF";
+    public static final String ACTION_BLUETOOTH_DEVICE_CONNECT = "tt.co.justins.radio.radioreminder.action.BLUETOOTH_DEVICE_CONNECT";
+    public static final String ACTION_BLUETOOTH_DEVICE_DISCONNECT = "tt.co.justins.radio.radioreminder.action.BLUETOOTH_DEVICE_DISCONNECT";
     public static final String ACTION_POWER_CONNECTED = "tt.co.justins.radio.radioreminder.action.POWER_ON";
 
     public static final int SERVICE_WIFI = 0;
+    public static final int NEW_EVENT = -1;
 
-    private static final String tag = "radioreminder";
+    private static final String tag = "RadioService";
 
     private static int notificationId;
 
     private ConnectivityReceiver wifiReceiver;
     private ConnectivityReceiver batteryReceiver;
+    private ConnectivityReceiver bluetoothReceiver;
 
     private List<Event> eventList;
     private Timer timer;
+    private boolean mStarted = false;
+
+    public class RadioBinder extends Binder {
+        RadioService getService() {
+            return RadioService.this;
+        }
+    }
+
+    private IBinder mBinder = new RadioBinder();
 
     //grab the Action from the intent and call the action's handler
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             String action = intent.getAction();
-            Log.d(tag, "Service started with action: " + action);
+            Log.d(tag, "Started with action: " + action);
             switch(action) {
                 case SERVICE_SETUP:
-                    handleActionSetup();
+                    if(mStarted == false) {
+                        Log.d(tag, "Setting up the service for the first time.");
+                        eventList = new ArrayList<>();
+                        registerBroadcastReceivers();
+                        mStarted = true;
+                    } else {
+                        Log.d(tag, "Service already started. Ignoring setup.");
+                    }
                     break;
 
                 case SERVICE_EXIT:
-                    handleActionExit();
+                    unregisterBroadcastReceivers();
                     break;
 
                 case SERVICE_EVENT:
@@ -69,7 +94,10 @@ public class RadioService extends Service {
                         updateEvent(event, position);
                     break;
 
+                case ACTION_BLUETOOTH_OFF:
+                case ACTION_BLUETOOTH_ON:
                 case ACTION_WIFI_OFF:
+                case ACTION_WIFI_ON:
                 case ACTION_POWER_CONNECTED:
                     processAction(action);
                     break;
@@ -89,15 +117,21 @@ public class RadioService extends Service {
     //add event to the list of events the service watches for
     //only allows one event per service type
     private void addNewEvent(Event event) {
-        for(Event e : eventList) {
-            if(e.serviceType == event.serviceType) {
-                eventList.remove(e);
-                break;
-            }
-        }
+//        todo allow multipule events of the same type
+//        for(Event e : eventList) {
+//            if(e.serviceType == event.serviceType) {
+//                eventList.remove(e);
+//                break;
+//            }
+//        }
         eventList.add(event);
         Log.d(tag, "Added event to list. Count: " + eventList.size());
         logEvent(event);
+    }
+
+    public List<Event> getEventList() {
+        Log.d(tag, "Sending event list to application. Size: " + eventList.size());
+        return eventList;
     }
 
     //if match is found check to see if the event needs to wait for some time or another event
@@ -169,7 +203,14 @@ public class RadioService extends Service {
             case ACTION_WIFI_ON:
                 enableWifi();
                 break;
+            case ACTION_BLUETOOTH_OFF:
+                disableBluetooth();
+                break;
+            case ACTION_BLUETOOTH_ON:
+                enableBluetooth();
+                break;
         }
+        //todo implement rule lifetime
         //removeEvent(e);
     }
 
@@ -202,9 +243,21 @@ public class RadioService extends Service {
         Log.d(tag, "WIFI Enabled");
     }
 
+    private void disableBluetooth() {
+        BluetoothManager btMan = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        btMan.getAdapter().disable();
+        Log.d(tag, "Bluetooth Disabled");
+    }
+
+    private void enableBluetooth() {
+        BluetoothManager btMan = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        btMan.getAdapter().enable();
+        Log.d(tag, "Bluetooth Enabled");
+    }
+
     //creates a notification and sends it to the notification drawer
     private void sendNotification(String message) {
-        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
+        Notification.Builder mBuilder = new Notification.Builder(this)
                 .setContentTitle("Radio Reminder")
                 .setContentText(message)
                 .setSmallIcon(R.drawable.ic_launcher);
@@ -224,28 +277,33 @@ public class RadioService extends Service {
     }
 
     //initialize all the receivers for the services that are being watched
-    private void handleActionSetup() {
+    private void registerBroadcastReceivers() {
         wifiReceiver = new ConnectivityReceiver();
         batteryReceiver = new ConnectivityReceiver();
-        eventList = MyActivity.eventList;
+        bluetoothReceiver = new ConnectivityReceiver();
 
         registerReceiver(wifiReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         Log.d(tag, "Registered CONNECTIVITY_ACTION receiver");
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_POWER_CONNECTED));
         Log.d(tag, "Registered ACTION_POWER_CONNECTED receiver");
+        registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
+        Log.d(tag, "Registered ACTION_POWER_DISCONNECTED receiver");
+        registerReceiver(bluetoothReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
+        registerReceiver(bluetoothReceiver, new IntentFilter(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED));
     }
 
     //destroy all the receivers
-    private void handleActionExit() {
+    private void unregisterBroadcastReceivers() {
         unregisterReceiver(wifiReceiver);
         Log.d(tag, "Unregistered CONNECTIVITY_ACTION receiver");
         unregisterReceiver(batteryReceiver);
         Log.d(tag, "Unregistered ACTION_POWER_CONNECTED receiver");
     }
 
+    //allow binding so the service can provide the event list
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return mBinder;
     }
 
     @Override

@@ -1,14 +1,15 @@
 package tt.co.justins.radio.radioreminder;
 
-
-
+import android.app.Fragment;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.support.v4.app.Fragment;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -18,29 +19,49 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 public class EventFragment extends Fragment implements AdapterView.OnItemSelectedListener, View.OnClickListener{
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+    private static String tag = "EventFragment";
 
-    private Event mEvent;
-    private int mListPosition;
+    private Event mEvent = null;
+    private int mListPosition = -1;
 
-    private Spinner watchSpinner;
-    private Spinner respondSpinner;
-    private Spinner waitEventSpinner;
+    private Spinner watchSpinner = null;
+    private Spinner respondSpinner = null;
+    private Spinner waitEventSpinner = null;
 
-    private EditText hoursEdit;
-    private EditText minsEdit;
+    private EditText hoursEdit = null;
+    private EditText minsEdit = null;
+    private EditText editText = null;
 
-    public static EventFragment newInstance(Event event, int listPosition) {
+    public static EventFragment newInstance(Bundle args) {
         EventFragment fragment = new EventFragment();
-        Bundle args = new Bundle();
-        args.putSerializable(ARG_PARAM1, event);
-        args.putInt(ARG_PARAM2, listPosition);
         fragment.setArguments(args);
         return fragment;
     }
     public EventFragment() {
         // Required empty public constructor
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_event, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        Log.d(tag, "Clicked actionbar item.");
+        int id = item.getItemId();
+
+        if (id == R.id.action_save_event) {
+            saveEvent();
+            return true;
+        }
+
+        if (id == R.id.action_delete_event) {
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     //part of OnItemSelected interface
@@ -51,68 +72,76 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
 
     //part of OnItemSelected interface
     public void onNothingSelected(AdapterView av) {
+    }
 
+    private void saveEvent() {
+        Log.d(tag, "Saving settings and sending the event to radio service.");
+
+        //todo fix service type
+        mEvent.serviceType = RadioService.SERVICE_WIFI;
+        mEvent.watchAction = getSelectedSpinnerItemAsAction(watchSpinner);
+        mEvent.respondAction = getSelectedSpinnerItemAsAction(respondSpinner);
+        mEvent.name = editText.getText().toString();
+
+        //determine which delay was selected
+        RadioGroup buttonGroup = (RadioGroup) getView().findViewById(R.id.radioGroup);
+        int buttonId = buttonGroup.getCheckedRadioButtonId();
+
+        switch (buttonId) {
+            case R.id.delay_event_button:
+                mEvent.waitAction = getSelectedSpinnerItemAsAction(waitEventSpinner);
+                mEvent.waitInterval = 0;
+                break;
+            case R.id.delay_interval_button:
+                String sHour = hoursEdit.getText().toString();
+                String sMin = minsEdit.getText().toString();
+                int hours;
+                int minutes;
+
+                //parsing a string so check for empty string
+                if(sHour.equals(""))
+                    hours = 0;
+                else
+                    hours = Integer.parseInt(sHour);
+
+                if(sMin.equals(""))
+                    minutes = 0;
+                else
+                    minutes = Integer.parseInt(sMin);
+
+                mEvent.waitInterval = hours * 60 + minutes;
+                mEvent.waitAction = null;
+                break;
+            case R.id.delay_none_button:
+                mEvent.waitAction = null;
+                mEvent.waitInterval = 0;
+                break;
+        }
+
+        //send event to the service
+        Intent intent = new Intent(getActivity(), RadioService.class);
+        intent.setAction(RadioService.SERVICE_EVENT);
+        intent.putExtra(RadioService.EXTRA_EVENT_POSITION, mListPosition);
+        intent.putExtra(RadioService.EXTRA_EVENT, mEvent);
+        getActivity().startService(intent);
+
+        //return to the list activity
+        intent = new Intent(getActivity(), ListActivity.class);
+        getActivity().startActivity(intent);
+
+//        TextView saveText = (TextView) getView().findViewById(R.id.save_text);
+//        saveText.setText("Changes saved.");
+//        saveText.setVisibility(View.VISIBLE);
     }
 
     public void onClick(View v) {
-        Log.d("radioreminder", "Onclick called with view: " + v.toString());
-        TextView saveText = (TextView) getView().findViewById(R.id.save_text);
-        saveText.setText("Changes not saved");
-        saveText.setVisibility(View.VISIBLE);
+        Log.d(tag, "onClick called with view: " + v.toString());
 
         switch(v.getId()) {
             //clicked the apply button
-            //parse all the option selections and build an event object
-            case R.id.save_button:
-                Log.d("radioreminder", "Saving settings and sending the event to radio service");
-                mEvent.serviceType = RadioService.SERVICE_WIFI;
-                mEvent.watchAction = getSelectedSpinnerItemAsAction(watchSpinner);
-                mEvent.respondAction = getSelectedSpinnerItemAsAction(respondSpinner);
-
-                //determine which delay was selected
-                RadioGroup buttonGroup = (RadioGroup) getView().findViewById(R.id.radioGroup);
-                int buttonId = buttonGroup.getCheckedRadioButtonId();
-
-                switch (buttonId) {
-                    case R.id.delay_event_button:
-                        mEvent.waitAction = getSelectedSpinnerItemAsAction(waitEventSpinner);
-                        mEvent.waitInterval = 0;
-                        break;
-                    case R.id.delay_interval_button:
-                        String sHour = hoursEdit.getText().toString();
-                        String sMin = minsEdit.getText().toString();
-                        int hours;
-                        int mins;
-
-                        //parsing a string so check for empty string
-                        if(sHour.equals(""))
-                            hours = 0;
-                        else
-                            hours = Integer.parseInt(sHour);
-
-                        if(sMin.equals(""))
-                            mins = 0;
-                        else
-                            mins = Integer.parseInt(sMin);
-
-                        mEvent.waitInterval = hours * 60 + mins;
-                        mEvent.waitAction = null;
-                        break;
-                    case R.id.delay_none_button:
-                        mEvent.waitAction = null;
-                        mEvent.waitInterval = 0;
-                        break;
-                }
-
-                //send event to the service
-                Intent intent = new Intent(getView().getContext(), RadioService.class);
-                intent.setAction(RadioService.SERVICE_EVENT);
-                intent.putExtra(RadioService.EXTRA_EVENT_POSITION, mListPosition);
-                intent.putExtra(RadioService.EXTRA_EVENT, mEvent);
-                getView().getContext().startService(intent);
-
-                saveText.setText("Changes saved");
-                break;
+//            case R.id.save_button:
+//                saveEvent();
+//                break;
         }
     }
 
@@ -142,7 +171,7 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
                     position = 1;
                     break;
                 case RadioService.ACTION_POWER_CONNECTED:
-                    position = 0;
+                    position = 2;
                     break;
             }
         }
@@ -152,20 +181,46 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if(savedInstanceState != null) { //recreation
+            mEvent = (Event) savedInstanceState.getSerializable(RadioService.EXTRA_EVENT);
+            mListPosition = savedInstanceState.getInt(RadioService.EXTRA_EVENT_POSITION);
+        } else { //first time creating the fragment
+            if (getArguments() != null) {
+                mListPosition = getArguments().getInt(RadioService.EXTRA_EVENT_POSITION);
+                //create an new empty event if position is magic valve NEW_EVENT
+                if(mListPosition == RadioService.NEW_EVENT){
+                    mEvent = new Event();
+                } else {
+                    mEvent = (Event) getArguments().getSerializable(RadioService.EXTRA_EVENT);
+                }
+            } else {
+                throw new IllegalArgumentException("getArguments returns null.");
+            }
+        }
+
+        setHasOptionsMenu(true);
+        Log.d(tag, "onCreate called. Pos: " + mListPosition);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        if (getArguments() != null) {
-            mEvent = (Event) getArguments().getSerializable(ARG_PARAM1);
-            mListPosition = getArguments().getInt(ARG_PARAM2);
-        } else {
-            //mEvent = new Event();
-        }
+        Log.d(tag, "onCreateview called. Pos: " + mListPosition);
 
         // Inflate the layout for this fragment
-        View v =inflater.inflate(R.layout.fragment_event, container, false);
+        View v = inflater.inflate(R.layout.fragment_event, container, false);
+
+        //set the state for all the views in the fragment
+        inflateFragmentState(v);
+
+        return v;
+    }
+
+    private void inflateFragmentState(View v) {
+        Log.d(tag, "Inflating event state.");
+
+        editText = (EditText) v.findViewById(R.id.text_name_edit);
 
         // Find all the spinner IDs
         watchSpinner = (Spinner) v.findViewById(R.id.wifi_watch_spin);
@@ -203,13 +258,15 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         delayNoneButton.setOnClickListener(this);
         delayIntervalButton.setOnClickListener(this);
         delayEventButton.setOnClickListener(this);
-        v.findViewById(R.id.save_button).setOnClickListener(this);
+        //v.findViewById(R.id.save_button).setOnClickListener(this);
 
         //fill the controls with the values from the event
+        editText.setText(mEvent.name);
+
         watchSpinner.setSelection(getSpinnerSelectionFromAction(mEvent.watchAction));
         respondSpinner.setSelection(getSpinnerSelectionFromAction(mEvent.respondAction));
 
-        if(mEvent.waitAction != null) {
+        if(mEvent.waitAction != "") {
             waitEventSpinner.setSelection(getSpinnerSelectionFromAction(mEvent.waitAction));
             delayEventButton.setChecked(true);
         }
@@ -221,12 +278,5 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         else {
             delayNoneButton.setChecked(true);
         }
-
-        return v;
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
     }
 }

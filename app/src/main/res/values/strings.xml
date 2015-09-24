@@ -3,7 +3,12 @@
 
     <string name="app_name">RadioReminder</string>
     <string name="hello_world">Hello world!</string>
+
     <string name="action_settings">Settings</string>
+    <string name="action_add_event">Add Event</string>
+    <string name="action_delete_event">Delete Event</string>
+    <string name="action_save_event">Save Event</string>
+
     <string name="section1">Set the action/event you want to watch for, and the action you want to respond with.</string>
     <string name="section2">Delay response until this condition is met:</string>
 
@@ -35,5 +40,6 @@
     </string-array>
 
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="title_activity_event">EventActivity</string>
 
 </resources>

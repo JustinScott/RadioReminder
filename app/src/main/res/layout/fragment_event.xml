@@ -1,4 +1,5 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -7,10 +8,24 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:text="Name: "
+        android:textSize="20dp"
+        android:id="@+id/text_name_label"
+        android:paddingBottom="10dp"/>
+
+    <EditText
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/text_name_edit"
+        android:layout_toRightOf="@+id/text_name_label"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:id="@+id/textView1"
-        android:layout_below="@+id/switch1"
-        android:text="@+string/section1"
-        android:textSize="20dp"/>
+        android:text="@string/section1"
+        android:textSize="20dp"
+        android:layout_below="@+id/text_name_label"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -46,7 +61,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@+string/section2"
+        android:text="@string/section2"
         android:id="@+id/textView4"
         android:layout_below="@+id/wifi_respond_spin"
         android:textSize="20dp"/>
@@ -125,23 +140,4 @@
         android:layout_alignBottom="@+id/min_edit"
         android:layout_toRightOf="@+id/min_edit"
         android:textSize="20dp"/>
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Apply Changes"
-        android:id="@+id/save_button"
-        android:layout_marginTop="35dp"
-        android:layout_centerHorizontal="true"
-        android:layout_below="@+id/radioGroup" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/save_text"
-        android:textSize="40dp"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:visibility="invisible" />
-
 </RelativeLayout>

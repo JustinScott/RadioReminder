@@ -21,8 +21,14 @@ public class Event implements Serializable {
     public String waitAction;
     public int waitInterval;
     public int state;
+    public String name;
 
     public Event() {
+        name = "new event";
         state = NOT_WAITING;
+        waitInterval = 0;
+        waitAction = null;
+        watchAction = RadioService.ACTION_WIFI_OFF;
+        respondAction = RadioService.ACTION_WIFI_OFF;
     }
 }

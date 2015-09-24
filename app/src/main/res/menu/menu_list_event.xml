@@ -1,0 +1,12 @@
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    tools:context="tt.co.justins.radio.radioreminder.ListActivity" >
+
+    <item
+        android:id="@+id/action_add_event"
+        android:title="@string/action_add_event"
+        android:icon="@drawable/ic_add_circle_outline_white_24dp"
+        android:showAsAction="always"/>
+</menu>
