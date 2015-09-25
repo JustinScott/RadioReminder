@@ -15,11 +15,20 @@
     <string-array name="radio_state">
         <item>WIFI Radio On</item>
         <item>WIFI Radio Off</item>
-        <item>Plugged In</item>
+        <item>Power Plugged In</item>
+        <item>Power Unplugged</item>
+        <item>Bluetooth Radio On</item>
+        <item>Bluetooth Radio Off</item>
+        <item>Connect to WIFI network</item>
+        <item>Disconnect from WIFI network</item>
+        <item>Connect to Bluetooth device</item>
+        <item>Disconnect from Bluetooth device</item>
     </string-array>
+
     <string-array name="my_events">
         <item>Plugged In</item>
     </string-array>
+
     <string-array name="intervals">
         <item>0.5</item>
         <item>1.0</item>

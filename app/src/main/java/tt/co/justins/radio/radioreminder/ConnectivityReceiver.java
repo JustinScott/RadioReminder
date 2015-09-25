@@ -31,14 +31,17 @@ public class ConnectivityReceiver extends BroadcastReceiver {
 
         if(intentAction == ConnectivityManager.CONNECTIVITY_ACTION) {
             if (extras != null) {
-                if (extras.containsKey("networkInfo")) {
-                    NetworkInfo netInfo = (NetworkInfo) extras.get("networkInfo");
-                    if (netInfo.getType() == ConnectivityManager.TYPE_WIFI) {
-                        if (netInfo.getState() == NetworkInfo.State.CONNECTED) {
-                            Log.d(tag, "WIFI CONNECTED");
-                        } else if (netInfo.getState() == NetworkInfo.State.DISCONNECTED) {
-                            Log.d(tag, "WIFI DISCONNECTED");
-                            sendIntent(RadioService.ACTION_WIFI_OFF);
+                //there are two wifi disconnect broadcast, ignore the one that has this key
+                if (!extras.containsKey("otherNetwork")) {
+                    if (extras.containsKey("networkInfo")) {
+                        NetworkInfo netInfo = (NetworkInfo) extras.get("networkInfo");
+                        if (netInfo.getType() == ConnectivityManager.TYPE_WIFI) {
+                            if (netInfo.getState() == NetworkInfo.State.CONNECTED) {
+                                Log.d(tag, "WIFI CONNECTED");
+                            } else if (netInfo.getState() == NetworkInfo.State.DISCONNECTED) {
+                                Log.d(tag, "WIFI DISCONNECTED");
+                                sendIntent(RadioService.ACTION_WIFI_OFF);
+                            }
                         }
                     }
                 }

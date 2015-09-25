@@ -4,6 +4,7 @@ import android.app.Fragment;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -18,7 +19,7 @@ import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 
-public class EventFragment extends Fragment implements AdapterView.OnItemSelectedListener, View.OnClickListener{
+public class EventFragment extends Fragment implements AdapterView.OnItemSelectedListener, TextView.OnEditorActionListener {
     private static String tag = "EventFragment";
 
     private Event mEvent = null;
@@ -31,6 +32,12 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
     private EditText hoursEdit = null;
     private EditText minsEdit = null;
     private EditText editText = null;
+
+    RadioButton delayEventButton = null;
+    RadioButton delayIntervalButton = null;
+    RadioButton delayNoneButton = null;
+
+    private int lameSpinnerHack;
 
     public static EventFragment newInstance(Bundle args) {
         EventFragment fragment = new EventFragment();
@@ -58,20 +65,24 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         }
 
         if (id == R.id.action_delete_event) {
+            deleteEvent();
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
-    //part of OnItemSelected interface
-    //fires when and item is selected in a spinner view
-    public void onItemSelected(AdapterView av, View v, int pos, long id) {
-        onClick(v);
-    }
-
-    //part of OnItemSelected interface
-    public void onNothingSelected(AdapterView av) {
+    private void deleteEvent() {
+        //-1 means it's a new event that hasn't been added to the service yet, so just jump to
+        //the list activity
+        if(mListPosition != -1) {
+            //send event to the service
+            Intent intent = new Intent(getActivity(), RadioService.class);
+            intent.setAction(RadioService.SERVICE_EVENT_DELETE);
+            intent.putExtra(RadioService.EXTRA_EVENT_POSITION, mListPosition);
+            getActivity().startService(intent);
+        }
+        startListActivity();
     }
 
     private void saveEvent() {
@@ -110,10 +121,10 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
                     minutes = Integer.parseInt(sMin);
 
                 mEvent.waitInterval = hours * 60 + minutes;
-                mEvent.waitAction = null;
+                mEvent.waitAction = "";
                 break;
             case R.id.delay_none_button:
-                mEvent.waitAction = null;
+                mEvent.waitAction = "";
                 mEvent.waitInterval = 0;
                 break;
         }
@@ -125,24 +136,13 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         intent.putExtra(RadioService.EXTRA_EVENT, mEvent);
         getActivity().startService(intent);
 
-        //return to the list activity
-        intent = new Intent(getActivity(), ListActivity.class);
-        getActivity().startActivity(intent);
-
-//        TextView saveText = (TextView) getView().findViewById(R.id.save_text);
-//        saveText.setText("Changes saved.");
-//        saveText.setVisibility(View.VISIBLE);
+        startListActivity();
     }
 
-    public void onClick(View v) {
-        Log.d(tag, "onClick called with view: " + v.toString());
-
-        switch(v.getId()) {
-            //clicked the apply button
-//            case R.id.save_button:
-//                saveEvent();
-//                break;
-        }
+    private void startListActivity() {
+        //return to the list activity
+        Intent intent = new Intent(getActivity(), ListActivity.class);
+        getActivity().startActivity(intent);
     }
 
     private String getSelectedSpinnerItemAsAction(Spinner spinner) {
@@ -151,16 +151,47 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
             case "WIFI Radio On":
                 action = RadioService.ACTION_WIFI_ON;
                 break;
+
             case "WIFI Radio Off":
                 action = RadioService.ACTION_WIFI_OFF;
                 break;
-            case "Plugged In":
+
+            case "Power Plugged In":
                 action = RadioService.ACTION_POWER_CONNECTED;
+                break;
+
+            case "Power Unplugged":
+                action = RadioService.ACTION_POWER_DISCONNECTED;
+			    break;
+
+            case "Bluetooth Radio On":
+                action = RadioService.ACTION_BLUETOOTH_ON;
+			    break;
+
+            case "Bluetooth Radio Off":
+                action = RadioService.ACTION_BLUETOOTH_OFF;
+			    break;
+
+            case "Connect to WIFI network":
+                action = RadioService.ACTION_WIFI_NETWORK_CONNECT;
+			    break;
+
+            case "Disconnect from WIFI network":
+                action = RadioService.ACTION_WIFI_NETWORK_DISCONNECT;
+			    break;
+
+            case "Connect to Bluetooth device":
+                action = RadioService.ACTION_BLUETOOTH_DEVICE_CONNECT;
+			    break;
+
+            case "Disconnect from Bluetooth device":
+                action = RadioService.ACTION_BLUETOOTH_DEVICE_DISCONNECT;
+			    break;
         }
         return action;
     }
 
-    private int getSpinnerSelectionFromAction(String action) {
+    private int getSpinnerPositionFromAction(String action) {
         int position = 0;
         if(action != null) {
             switch (action) {
@@ -172,6 +203,27 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
                     break;
                 case RadioService.ACTION_POWER_CONNECTED:
                     position = 2;
+                    break;
+                case RadioService.ACTION_POWER_DISCONNECTED:
+                    position = 3;
+                    break;
+                case RadioService.ACTION_BLUETOOTH_ON:
+                    position = 4;
+                    break;
+                case RadioService.ACTION_BLUETOOTH_OFF:
+                    position = 5;
+                    break;
+                case RadioService.ACTION_WIFI_NETWORK_CONNECT:
+                    position = 6;
+                    break;
+                case RadioService.ACTION_WIFI_NETWORK_DISCONNECT:
+                    position = 7;
+                    break;
+                case RadioService.ACTION_BLUETOOTH_DEVICE_CONNECT:
+                    position = 8;
+                    break;
+                case RadioService.ACTION_BLUETOOTH_DEVICE_DISCONNECT:
+                    position = 9;
                     break;
             }
         }
@@ -187,7 +239,7 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
             mListPosition = savedInstanceState.getInt(RadioService.EXTRA_EVENT_POSITION);
         } else { //first time creating the fragment
             if (getArguments() != null) {
-                mListPosition = getArguments().getInt(RadioService.EXTRA_EVENT_POSITION);
+                mListPosition = getArguments().getInt(RadioService.EXTRA_EVENT_POSITION, -1);
                 //create an new empty event if position is magic valve NEW_EVENT
                 if(mListPosition == RadioService.NEW_EVENT){
                     mEvent = new Event();
@@ -206,7 +258,7 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        Log.d(tag, "onCreateview called. Pos: " + mListPosition);
+        Log.v(tag, "onCreateview called. Pos: " + mListPosition);
 
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_event, container, false);
@@ -247,28 +299,33 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
 
         //this class needs to implement the OnItemSelectedListener interface for this to work
         //respondSpinner.setOnItemSelectedListener(this);
-        //waitEventSpinner.setOnItemSelectedListener(this);
+        waitEventSpinner.setOnItemSelectedListener(this);
         //watchSpinner.setOnItemSelectedListener(this);
 
-        //on click listeners
-        RadioButton delayEventButton = (RadioButton) v.findViewById(R.id.delay_event_button);
-        RadioButton delayIntervalButton = (RadioButton) v.findViewById(R.id.delay_interval_button);
-        RadioButton delayNoneButton = (RadioButton) v.findViewById(R.id.delay_none_button);
+        lameSpinnerHack = 0;
 
-        delayNoneButton.setOnClickListener(this);
-        delayIntervalButton.setOnClickListener(this);
-        delayEventButton.setOnClickListener(this);
-        //v.findViewById(R.id.save_button).setOnClickListener(this);
+        //on click listeners
+        delayEventButton = (RadioButton) v.findViewById(R.id.delay_event_button);
+        delayIntervalButton = (RadioButton) v.findViewById(R.id.delay_interval_button);
+        delayNoneButton = (RadioButton) v.findViewById(R.id.delay_none_button);
+
+        //delayNoneButton.setOnClickListener(this);
+        //delayIntervalButton.setOnClickListener(this);
+        //delayEventButton.setOnClickListener(this);
+
+        hoursEdit.setOnEditorActionListener(this);
+        minsEdit.setOnEditorActionListener(this);
 
         //fill the controls with the values from the event
         editText.setText(mEvent.name);
 
-        watchSpinner.setSelection(getSpinnerSelectionFromAction(mEvent.watchAction));
-        respondSpinner.setSelection(getSpinnerSelectionFromAction(mEvent.respondAction));
+        watchSpinner.setSelection(getSpinnerPositionFromAction(mEvent.watchAction));
+        respondSpinner.setSelection(getSpinnerPositionFromAction(mEvent.respondAction));
 
-        if(mEvent.waitAction != "") {
-            waitEventSpinner.setSelection(getSpinnerSelectionFromAction(mEvent.waitAction));
-            delayEventButton.setChecked(true);
+        if(!mEvent.waitAction.equals("")) {
+            Log.v(tag, "Event wait action not empty.");
+            //waitEventSpinner.setSelection(getSpinnerPositionFromAction(mEvent.waitAction));
+            //delayEventButton.setChecked(true);
         }
         else if(mEvent.waitInterval != 0) {
             hoursEdit.setText((mEvent.waitInterval / 60) + "");
@@ -278,5 +335,25 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         else {
             delayNoneButton.setChecked(true);
         }
+    }
+
+    @Override
+    public boolean onEditorAction(TextView textView, int i, KeyEvent keyEvent) {
+        delayIntervalButton.setChecked(true);
+        return false;
+    }
+
+    //part of OnItemSelected interface
+    //fires when and item is selected in a spinner view
+    public void onItemSelected(AdapterView av, View v, int pos, long id) {
+        Log.v(tag, "Wait event spinner selected. Pos: " + pos);
+        if(lameSpinnerHack != 0) {
+            delayEventButton.setChecked(true);
+        }
+        lameSpinnerHack++;
+    }
+
+    //part of OnItemSelected interface
+    public void onNothingSelected(AdapterView av) {
     }
 }

@@ -1,19 +1,22 @@
 package tt.co.justins.radio.radioreminder;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ListAdapter;
 import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class EventListAdapter extends BaseAdapter {
+public class EventListAdapter extends BaseAdapter implements ListAdapter {
 
     List<Event> mEventList;
     Context mContext;
+    private String tag = "EventListAdapter";
 
     EventListAdapter(Context context){
         mContext = context;
@@ -21,7 +24,7 @@ public class EventListAdapter extends BaseAdapter {
     }
 
     public void updateList(List<Event> eventList) {
-        mEventList = eventList;
+        mEventList = new ArrayList<Event>(eventList);
     }
 
     @Override
@@ -56,7 +59,7 @@ public class EventListAdapter extends BaseAdapter {
         textWatch.setText("Watch Event: " + event.watchAction.substring(event.watchAction.lastIndexOf('.')));
         textResponse.setText("Response Event: " + event.respondAction.substring(event.respondAction.lastIndexOf('.')));
         String wait = "Wait Event: ";
-        if(event.waitAction == null)
+        if(event.waitAction.equals(""))
             wait += event.waitInterval + " minutes.";
         else
             wait += event.waitAction.substring(event.waitAction.lastIndexOf('.'));

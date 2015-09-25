@@ -1,20 +1,18 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="tt.co.justins.radio.radioreminder.EventListFragment"
     android:orientation="vertical">
 
     <ListView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/event_list"/>
+        android:id="@+id/android:list"/>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/empty_text"
-        android:text="Event list is empty."
+        android:id="@+id/android:empty"
+        android:text="The event list is empty. Click the plus icon at the top to add events."
         android:gravity="center"/>
 </LinearLayout>

@@ -27,7 +27,7 @@ public class Event implements Serializable {
         name = "new event";
         state = NOT_WAITING;
         waitInterval = 0;
-        waitAction = null;
+        waitAction = "";
         watchAction = RadioService.ACTION_WIFI_OFF;
         respondAction = RadioService.ACTION_WIFI_OFF;
     }

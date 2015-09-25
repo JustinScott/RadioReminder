@@ -1,6 +1,7 @@
 package tt.co.justins.radio.radioreminder;
 
 import android.app.Activity;
+import android.app.ListFragment;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -21,10 +22,8 @@ import android.widget.TextView;
 
 import java.util.List;
 
-public class EventListFragment extends Fragment {
+public class EventListFragment extends ListFragment {
     private String tag = "ListFragment";
-
-    private OnFragmentInteractionListener mListener;
 
     private static List<Event> eventList = null;
     EventListAdapter listAdapter;
@@ -41,12 +40,21 @@ public class EventListFragment extends Fragment {
             mService = binder.getService();
             mBound = true;
 
-            Log.d(tag, "Connected to service. Grabbing event list, and setting adapter.");
+            Log.d(tag, "Connected to service. Grabbing event list.");
             eventList = mService.getEventList();
 
             if (eventList != null) {
+                Log.d(tag, "Updating list in adapter, and invalidating old list data.");
                 listAdapter.updateList(eventList);
                 listAdapter.notifyDataSetChanged();
+            }
+
+            //kill the service if it is running and has an empty event list
+            if(mService.isServiceStarted() && mService.getEventListSize() == 0)
+            {
+                Log.d(tag, "Service running in background with empty list. Turning it off.");
+                Intent intent = new Intent(getActivity(), RadioService.class);
+                getActivity().stopService(intent);
             }
         }
 
@@ -63,29 +71,18 @@ public class EventListFragment extends Fragment {
 
     @Override
     public void onAttach(Activity activity) {
-        Log.d(tag, "onAttach called.");
+        Log.v(tag, "onAttach called.");
         super.onAttach(activity);
-        try {
-            mListener = (OnFragmentInteractionListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }
         mActivity = activity;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d(tag, "onCreate called.");
+        Log.v(tag, "onCreate called.");
         setHasOptionsMenu(true);
 
         if(savedInstanceState == null) { //activity created for the first time
-            //start the service, and tell it to set up it's state
-            Log.d(tag, "SavedInstanceState is null. Starting radio service.");
-            Intent intent = new Intent(getActivity(), RadioService.class);
-            intent.setAction(RadioService.SERVICE_SETUP);
-            getActivity().startService(intent);
         } else { //activity recreated, service should already be running
         }
     }
@@ -93,28 +90,17 @@ public class EventListFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        Log.d(tag, "onCreateView called.");
+        Log.v(tag, "onCreateView called.");
         // Inflate the layout for this fragment
         View view =  inflater.inflate(R.layout.fragment_list, container, false);
 
         // Set the listAdapter for the list view
         Log.d(tag, "Setting the list listAdapter with an empty list");
-        ListView listView = (ListView) view.findViewById(R.id.event_list);
+        //ListView listView = (ListView) view.findViewById(R.id.event_list);
         listAdapter = new EventListAdapter(mActivity);
-        listView.setAdapter(listAdapter);
-
-        //set the text for an empty list
-        TextView emptyText = (TextView) view.findViewById(R.id.empty_text);
-        listView.setEmptyView(emptyText);
+        setListAdapter(listAdapter);
 
         return view;
-    }
-
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
     }
 
     @Override
@@ -128,7 +114,7 @@ public class EventListFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        Log.d(tag, "onResume called.");
+        Log.v(tag, "onResume called.");
     }
 
     @Override
@@ -142,33 +128,23 @@ public class EventListFragment extends Fragment {
     }
 
     @Override
-    public void onDetach() {
-        super.onDetach();
-        mListener = null;
-    }
-
-    @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
     }
 
-    private void startEventActivity(int listPosition, Event event) {
+    private void startEventActivity(int listPosition) {
         Log.d(tag, "Launching event activity.");
+        Event event;
+
+        if(listPosition < 0 || listPosition >= eventList.size())
+            event = null;
+        else
+            event = eventList.get(listPosition);
+
         Intent intent = new Intent(mActivity, EventActivity.class);
         intent.putExtra(RadioService.EXTRA_EVENT_POSITION, listPosition);
         intent.putExtra(RadioService.EXTRA_EVENT, event);
         startActivity(intent);
-    }
-
-    private void logEvent(Event e) {
-        Log.d(tag, "-- Watch: " + e.watchAction);
-        Log.d(tag, "-- Response: " + e.respondAction);
-        if(e.waitAction != null)
-            Log.d(tag, "-- Wait Action: " + e.waitAction);
-        else if(e.waitInterval != 0)
-            Log.d(tag, "-- Wait Interval: " + e.waitInterval + " mins.");
-        else
-            Log.d(tag, "-- No Wait Specified.");
     }
 
     @Override
@@ -181,25 +157,15 @@ public class EventListFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_add_event) {
-            startEventActivity(RadioService.NEW_EVENT, null);
+            startEventActivity(RadioService.NEW_EVENT);
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p/>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        public void onFragmentInteraction(Uri uri);
+    @Override
+    public void onListItemClick(ListView l, View v, int position, long id) {
+        super.onListItemClick(l, v, position, id);
+        startEventActivity(position);
     }
-
 }

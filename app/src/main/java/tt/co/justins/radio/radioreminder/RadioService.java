@@ -22,9 +22,9 @@ import java.util.TimerTask;
 
 public class RadioService extends Service{
 
-    public static final String SERVICE_SETUP = "tt.co.justins.radio.radioreminder.action.SETUP";
     public static final String SERVICE_EXIT = "tt.co.justins.radio.radioreminder.action.EXIT";
     public static final String SERVICE_EVENT = "tt.co.justins.radio.radioreminder.action.EVENT";
+    public static final String SERVICE_EVENT_DELETE = "tt.co.justins.radio.radioreminder.action.EVENT_DELETE";
 
     public static final String EXTRA_EVENT = "tt.co.justins.radio.radioreminder.extra.EVENT";
     public static final String EXTRA_EVENT_POSITION = "tt.co.justins.radio.radioreminder.extra.EVENT_POSITION";
@@ -36,13 +36,20 @@ public class RadioService extends Service{
     public static final String ACTION_BLUETOOTH_DEVICE_CONNECT = "tt.co.justins.radio.radioreminder.action.BLUETOOTH_DEVICE_CONNECT";
     public static final String ACTION_BLUETOOTH_DEVICE_DISCONNECT = "tt.co.justins.radio.radioreminder.action.BLUETOOTH_DEVICE_DISCONNECT";
     public static final String ACTION_POWER_CONNECTED = "tt.co.justins.radio.radioreminder.action.POWER_ON";
+    public static final String ACTION_POWER_DISCONNECTED = "tt.co.justins.radio.radioreminder.action.POWER_DISCONNECTED";
+    public static final String ACTION_WIFI_NETWORK_CONNECT = "tt.co.justins.radio.radioreminder.action.WIFI_NETWORK_CONNECT";
+    public static final String ACTION_WIFI_NETWORK_DISCONNECT = "tt.co.justins.radio.radioreminder.action.WIFI_NETWORK_DISCONNECT";
+    public static final String ACTION_LOCATION_ON = "tt.co.justins.radio.radioreminder.action.LOCATION_ON";
+    public static final String ACTION_LOCATION_OFF = "tt.co.justins.radio.radioreminder.action.LOCATION_OFF";
+    public static final String ACTION_CELL_DATA_ON = "tt.co.justins.radio.radioreminder.action.CELL_DATA_ON";
+    public static final String ACTION_CELL_DATA_OFF = "tt.co.justins.radio.radioreminder.action.CELL_DATA_OFF";
 
     public static final int SERVICE_WIFI = 0;
     public static final int NEW_EVENT = -1;
 
     private static final String tag = "RadioService";
 
-    private static int notificationId;
+    private static int serviceNotificationId = 0;
 
     private ConnectivityReceiver wifiReceiver;
     private ConnectivityReceiver batteryReceiver;
@@ -50,7 +57,7 @@ public class RadioService extends Service{
 
     private List<Event> eventList;
     private Timer timer;
-    private boolean mStarted = false;
+    private boolean mServiceInitialized = false;
 
     public class RadioBinder extends Binder {
         RadioService getService() {
@@ -65,46 +72,60 @@ public class RadioService extends Service{
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             String action = intent.getAction();
-            Log.d(tag, "Started with action: " + action);
+            int position;
+            Log.d(tag, "Service started with action: " + action);
             switch(action) {
-                case SERVICE_SETUP:
-                    if(mStarted == false) {
-                        Log.d(tag, "Setting up the service for the first time.");
-                        eventList = new ArrayList<>();
-                        registerBroadcastReceivers();
-                        mStarted = true;
-                    } else {
-                        Log.d(tag, "Service already started. Ignoring setup.");
-                    }
+                case SERVICE_EXIT:
+                    stopSelf();
                     break;
 
-                case SERVICE_EXIT:
-                    unregisterBroadcastReceivers();
+                case SERVICE_EVENT_DELETE:
+                    position = intent.getIntExtra(EXTRA_EVENT_POSITION, -1);
+                    removeEvent(position);
                     break;
 
                 case SERVICE_EVENT:
+                    if(mServiceInitialized == false) {
+                        Log.d(tag, "Setting up the service for the first time.");
+                        eventList = new ArrayList<>();
+                        registerBroadcastReceivers();
+                        mServiceInitialized = true;
+                    } else {
+                        Log.d(tag, "Service already started. Ignoring setup.");
+                    }
+
                     //get the serialized event object and add it to the list
                     Event event = (Event) intent.getSerializableExtra(EXTRA_EVENT);
                     //if this extra is present, this event replaces an existing event in the list
-                    int position = intent.getIntExtra(EXTRA_EVENT_POSITION, -1);
+                    position = intent.getIntExtra(EXTRA_EVENT_POSITION, -1);
 
-                    if(position == -1)
+                    if(position == -1) {
                         addNewEvent(event);
-                    else
+                        serviceNotificationId = sendNotification("Tracking " + eventList.size() + " events.");
+                    } else
                         updateEvent(event, position);
                     break;
 
-                case ACTION_BLUETOOTH_OFF:
-                case ACTION_BLUETOOTH_ON:
-                case ACTION_WIFI_OFF:
-                case ACTION_WIFI_ON:
-                case ACTION_POWER_CONNECTED:
+                //processAction should ignore any unknown actions, so there is no need to have a
+                //case for each action dropping through to process action.
+                default:
                     processAction(action);
                     break;
-                default:
             }
         }
         return START_STICKY;
+    }
+
+    private void removeEvent(int position) {
+        Log.v(tag, "RemoveEvent called.");
+        if(eventList !=  null) {
+            if (position < 0 || position >= eventList.size()) {
+                Log.d(tag, "Bad position value in delete event.");
+            } else {
+                eventList.remove(position);
+                Log.d(tag, "Removed element (" + position + ") in event list.");
+            }
+        }
     }
 
     //replace the event at position in the eventlist with this new event
@@ -115,23 +136,28 @@ public class RadioService extends Service{
     }
 
     //add event to the list of events the service watches for
-    //only allows one event per service type
     private void addNewEvent(Event event) {
-//        todo allow multipule events of the same type
-//        for(Event e : eventList) {
-//            if(e.serviceType == event.serviceType) {
-//                eventList.remove(e);
-//                break;
-//            }
-//        }
         eventList.add(event);
         Log.d(tag, "Added event to list. Count: " + eventList.size());
         logEvent(event);
     }
 
     public List<Event> getEventList() {
-        Log.d(tag, "Sending event list to application. Size: " + eventList.size());
+        String size = (eventList != null) ? eventList.size() + "" : "null";
+        Log.d(tag, "Sending event list to application. Size: " + size);
         return eventList;
+    }
+
+    public int getEventListSize() {
+        int size = 0;
+        if(eventList != null)
+            size = eventList.size();
+        Log.d(tag, "Sending event list size to application. Size: " + size);
+        return eventList.size();
+    }
+
+    public boolean isServiceStarted() {
+        return mServiceInitialized;
     }
 
     //if match is found check to see if the event needs to wait for some time or another event
@@ -143,7 +169,7 @@ public class RadioService extends Service{
             if (e.watchAction.equals(action)) {
                 //mark the event so it knows the watch action has occured
                 Log.d(tag, "Watch action for event (" + eventList.indexOf(e) + ") detected: " + action);
-                if(e.waitAction != null) {
+                if(!e.waitAction.equals("")) {
                     e.state = Event.WAITING;
                     Log.d(tag, "Putting the event in the waiting STATE");
                 }
@@ -154,7 +180,7 @@ public class RadioService extends Service{
                         executeDelayedEvent(e);
                     }
                     e.state = Event.WAITING;
-                    return;
+                    //return;
                 }
                 //event doesn't require a delay, so execute immediately
                 else {
@@ -203,11 +229,19 @@ public class RadioService extends Service{
             case ACTION_WIFI_ON:
                 enableWifi();
                 break;
+            case ACTION_BLUETOOTH_ON:
+                enableBluetooth();
+                break;
             case ACTION_BLUETOOTH_OFF:
                 disableBluetooth();
                 break;
-            case ACTION_BLUETOOTH_ON:
-                enableBluetooth();
+            case ACTION_LOCATION_ON:
+                break;
+            case ACTION_LOCATION_OFF:
+                break;
+            case ACTION_CELL_DATA_ON:
+                break;
+            case ACTION_CELL_DATA_OFF:
                 break;
         }
         //todo implement rule lifetime
@@ -256,18 +290,20 @@ public class RadioService extends Service{
     }
 
     //creates a notification and sends it to the notification drawer
-    private void sendNotification(String message) {
+    private int sendNotification(String message) {
         Notification.Builder mBuilder = new Notification.Builder(this)
                 .setContentTitle("Radio Reminder")
                 .setContentText(message)
                 .setSmallIcon(R.drawable.ic_launcher);
 
-        Intent emptyIntent = new Intent();
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, emptyIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        Intent activityIntent = new Intent(this, ListActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, activityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         mBuilder.setContentIntent(pendingIntent);
 
+        int notificationId = 0;
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.notify(notificationId, mBuilder.build());
+        return notificationId;
     }
 
     private void removeNotification(int notificationId) {
@@ -283,11 +319,11 @@ public class RadioService extends Service{
         bluetoothReceiver = new ConnectivityReceiver();
 
         registerReceiver(wifiReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
-        Log.d(tag, "Registered CONNECTIVITY_ACTION receiver");
+        Log.v(tag, "Registered CONNECTIVITY_ACTION receiver");
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_POWER_CONNECTED));
-        Log.d(tag, "Registered ACTION_POWER_CONNECTED receiver");
+        Log.v(tag, "Registered ACTION_POWER_CONNECTED receiver");
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
-        Log.d(tag, "Registered ACTION_POWER_DISCONNECTED receiver");
+        Log.v(tag, "Registered ACTION_POWER_DISCONNECTED receiver");
         registerReceiver(bluetoothReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
         registerReceiver(bluetoothReceiver, new IntentFilter(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED));
     }
@@ -307,12 +343,12 @@ public class RadioService extends Service{
     }
 
     @Override
-    public void onCreate() {
-        super.onCreate();
-    }
-
-    @Override
     public void onDestroy() {
+        Log.v(tag, "onDestroy called.");
+        if(serviceNotificationId != 0)
+            removeNotification(serviceNotificationId);
+        if(mServiceInitialized)
+            unregisterBroadcastReceivers();
         super.onDestroy();
     }
 }
