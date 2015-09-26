@@ -56,7 +56,7 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        Log.d(tag, "Clicked actionbar item.");
+        Log.v(tag, "Clicked actionbar item.");
         int id = item.getItemId();
 
         if (id == R.id.action_save_event) {

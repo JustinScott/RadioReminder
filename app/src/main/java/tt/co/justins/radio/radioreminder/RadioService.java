@@ -82,6 +82,10 @@ public class RadioService extends Service{
                 case SERVICE_EVENT_DELETE:
                     position = intent.getIntExtra(EXTRA_EVENT_POSITION, -1);
                     removeEvent(position);
+                    if(eventList.size() > 0)
+                        setServiceNotification("Tracking " + eventList.size() + " events.");
+                    else
+                        removeServiceNotification();
                     break;
 
                 case SERVICE_EVENT:
@@ -101,7 +105,7 @@ public class RadioService extends Service{
 
                     if(position == -1) {
                         addNewEvent(event);
-                        serviceNotificationId = sendNotification("Tracking " + eventList.size() + " events.");
+                        setServiceNotification("Tracking " + eventList.size() + " events.");
                     } else
                         updateEvent(event, position);
                     break;
@@ -175,12 +179,8 @@ public class RadioService extends Service{
                 }
                 //mark the event so it knows the watch action has occured
                 else if(e.waitInterval != 0) {
-                    if(e.state == Event.NOT_WAITING) {
-                        //set timer then call execute event
-                        executeDelayedEvent(e);
-                    }
-                    e.state = Event.WAITING;
-                    //return;
+                    //set timer then call execute event
+                    executeDelayedEvent(e);
                 }
                 //event doesn't require a delay, so execute immediately
                 else {
@@ -215,7 +215,7 @@ public class RadioService extends Service{
     }
 
     private void executeDelayedEvent(Event e) {
-        Log.d(tag, "Scheduling event (" + eventList.indexOf(e) + ") to execute in " + e.waitInterval + " mins.");
+        Log.d(tag, "Scheduling event (" + eventList.indexOf(e) + ") to execute in " + e.waitInterval + " min(s).");
         timer = new Timer();
         timer.schedule(new WaitTask(e), (e.waitInterval * 60 * 1000));
     }
@@ -246,12 +246,6 @@ public class RadioService extends Service{
         }
         //todo implement rule lifetime
         //removeEvent(e);
-    }
-
-    private void removeEvent(Event e) {
-        Log.d(tag, "Removing event (" + eventList.indexOf(e) + ") from list.");
-        logEvent(e);
-        eventList.remove(e);
     }
 
     private void logEvent(Event e) {
@@ -290,25 +284,23 @@ public class RadioService extends Service{
     }
 
     //creates a notification and sends it to the notification drawer
-    private int sendNotification(String message) {
+    private void setServiceNotification(String message) {
         Notification.Builder mBuilder = new Notification.Builder(this)
                 .setContentTitle("Radio Reminder")
                 .setContentText(message)
-                .setSmallIcon(R.drawable.ic_launcher);
+                .setSmallIcon(R.drawable.ic_notification);
 
         Intent activityIntent = new Intent(this, ListActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, activityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         mBuilder.setContentIntent(pendingIntent);
 
-        int notificationId = 0;
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.notify(notificationId, mBuilder.build());
-        return notificationId;
+        mNotificationManager.notify(serviceNotificationId, mBuilder.build());
     }
 
-    private void removeNotification(int notificationId) {
+    private void removeServiceNotification() {
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.cancel(notificationId);
+        mNotificationManager.cancel(serviceNotificationId);
         Log.d(tag, "Notification removed");
     }
 
@@ -346,7 +338,7 @@ public class RadioService extends Service{
     public void onDestroy() {
         Log.v(tag, "onDestroy called.");
         if(serviceNotificationId != 0)
-            removeNotification(serviceNotificationId);
+            removeServiceNotification();
         if(mServiceInitialized)
             unregisterBroadcastReceivers();
         super.onDestroy();
