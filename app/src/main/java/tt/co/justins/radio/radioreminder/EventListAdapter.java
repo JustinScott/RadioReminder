@@ -55,14 +55,14 @@ public class EventListAdapter extends BaseAdapter implements ListAdapter {
         TextView textWait = (TextView) view.findViewById(R.id.text_delay);
 
         Event event = mEventList.get(i);
-        textName.setText("Name: " + event.name);
-        textWatch.setText("Watch Event: " + event.watchAction.substring(event.watchAction.lastIndexOf('.')));
-        textResponse.setText("Response Event: " + event.respondAction.substring(event.respondAction.lastIndexOf('.')));
+        //textName.setText("Name: " + event.name);
+        textWatch.setText("Watch Event: " + RadioAction.getNameFromAction(event.watchAction));
+        textResponse.setText("Response Event: " + RadioAction.getNameFromAction(event.respondAction));
         String wait = "Wait Event: ";
-        if(event.waitAction.equals(""))
-            wait += event.waitInterval + " minutes.";
+        if(event.waitAction == null)
+            wait += event.waitInterval + " minute(s).";
         else
-            wait += event.waitAction.substring(event.waitAction.lastIndexOf('.'));
+            wait += RadioAction.getNameFromAction(event.waitAction);
         textWait.setText(wait);
 
         return view;

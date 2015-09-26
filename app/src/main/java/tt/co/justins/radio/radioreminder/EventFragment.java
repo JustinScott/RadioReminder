@@ -21,6 +21,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ListAdapter;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
@@ -137,10 +138,10 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
                     minutes = Integer.parseInt(sMin);
 
                 mEvent.waitInterval = hours * 60 + minutes;
-                mEvent.waitAction = "";
+                mEvent.waitAction = null;
                 break;
             case R.id.delay_none_button:
-                mEvent.waitAction = "";
+                mEvent.waitAction = null;
                 mEvent.waitInterval = 0;
                 break;
         }
@@ -161,89 +162,23 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         getActivity().startActivity(intent);
     }
 
-    private String getSelectedSpinnerItemAsAction(Spinner spinner) {
-        String action = null;
-        switch (spinner.getSelectedItem().toString()) {
-            case "WIFI Radio On":
-                action = RadioService.ACTION_WIFI_ON;
-                break;
-
-            case "WIFI Radio Off":
-                action = RadioService.ACTION_WIFI_OFF;
-                break;
-
-            case "Power Plugged In":
-                action = RadioService.ACTION_POWER_CONNECTED;
-                break;
-
-            case "Power Unplugged":
-                action = RadioService.ACTION_POWER_DISCONNECTED;
-			    break;
-
-            case "Bluetooth Radio On":
-                action = RadioService.ACTION_BLUETOOTH_ON;
-			    break;
-
-            case "Bluetooth Radio Off":
-                action = RadioService.ACTION_BLUETOOTH_OFF;
-			    break;
-
-            case "Connect to WIFI network":
-                action = RadioService.ACTION_WIFI_NETWORK_CONNECT;
-			    break;
-
-            case "Disconnect from WIFI network":
-                action = RadioService.ACTION_WIFI_NETWORK_DISCONNECT;
-			    break;
-
-            case "Connect to Bluetooth device":
-                action = RadioService.ACTION_BLUETOOTH_DEVICE_CONNECT;
-			    break;
-
-            case "Disconnect from Bluetooth device":
-                action = RadioService.ACTION_BLUETOOTH_DEVICE_DISCONNECT;
-			    break;
+    private RadioAction.Action getSelectedSpinnerItemAsAction(Spinner spinner) {
+        String actionName = spinner.getSelectedItem().toString();
+        for(RadioAction.Action action : RadioAction.Action.values()) {
+            if(RadioAction.getNameFromAction(action).equals(actionName))
+                return action;
         }
-        return action;
+        return null;
     }
 
-    private int getSpinnerPositionFromAction(String action) {
-        int position = 0;
-        if(action != null) {
-            switch (action) {
-                case RadioService.ACTION_WIFI_ON:
-                    position = 0;
-                    break;
-                case RadioService.ACTION_WIFI_OFF:
-                    position = 1;
-                    break;
-                case RadioService.ACTION_POWER_CONNECTED:
-                    position = 2;
-                    break;
-                case RadioService.ACTION_POWER_DISCONNECTED:
-                    position = 3;
-                    break;
-                case RadioService.ACTION_BLUETOOTH_ON:
-                    position = 4;
-                    break;
-                case RadioService.ACTION_BLUETOOTH_OFF:
-                    position = 5;
-                    break;
-                case RadioService.ACTION_WIFI_NETWORK_CONNECT:
-                    position = 6;
-                    break;
-                case RadioService.ACTION_WIFI_NETWORK_DISCONNECT:
-                    position = 7;
-                    break;
-                case RadioService.ACTION_BLUETOOTH_DEVICE_CONNECT:
-                    position = 8;
-                    break;
-                case RadioService.ACTION_BLUETOOTH_DEVICE_DISCONNECT:
-                    position = 9;
-                    break;
-            }
+    private int getSpinnerPositionFromAction(RadioAction.Action action, Spinner spinner) {
+        String actionName = RadioAction.getNameFromAction(action);
+        ListAdapter adapter = (ListAdapter) spinner.getAdapter();
+        for (int x = 0; x < adapter.getCount(); x++) {
+            if (actionName.equals(adapter.getItem(x).toString()))
+                return x;
         }
-        return position;
+        return 0;
     }
 
     @Override
@@ -321,7 +256,7 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         //watchSpinner.setOnItemSelectedListener(this);
         netDevSpinner.setOnItemSelectedListener(this);
 
-    netDevSpinner.setEnabled(false);
+        netDevSpinner.setEnabled(false);
         lameSpinnerHack = 0;
 
         //on click listeners
@@ -339,16 +274,13 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         //fill the controls with the values from the event
         editText.setText(mEvent.name);
 
-        //watchSpinner.setSelection(getSpinnerPositionFromAction(mEvent.watchAction));
-        //respondSpinner.setSelection(getSpinnerPositionFromAction(mEvent.respondAction));
+        watchSpinner.setSelection(getSpinnerPositionFromAction(mEvent.watchAction, watchSpinner));
+        respondSpinner.setSelection(getSpinnerPositionFromAction(mEvent.respondAction, respondSpinner));
 
-        setSelectionByAction(watchSpinner, mEvent.watchAction);
-        setSelectionByAction(respondSpinner, mEvent.respondAction);
-
-        if(!mEvent.waitAction.equals("")) {
+        if(!(mEvent.waitAction == null)) {
             Log.v(tag, "Event wait action not empty.");
-            //waitEventSpinner.setSelection(getSpinnerPositionFromAction(mEvent.waitAction));
-            //delayEventButton.setChecked(true);
+            waitEventSpinner.setSelection(getSpinnerPositionFromAction(mEvent.waitAction, waitEventSpinner));
+            delayEventButton.setChecked(true);
         }
         else if(mEvent.waitInterval != 0) {
             hoursEdit.setText((mEvent.waitInterval / 60) + "");
@@ -357,16 +289,6 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         }
         else {
             delayNoneButton.setChecked(true);
-        }
-    }
-
-    private void setSelectionByAction(Spinner spinner, String action) {
-        SpinnerAdapter adapter = spinner.getAdapter();
-        for(int x = 0; x < adapter.getCount(); x++) {
-            if(action.equals(adapter.getItem(x))) {
-                spinner.setSelection(x);
-                return;
-            }
         }
     }
 

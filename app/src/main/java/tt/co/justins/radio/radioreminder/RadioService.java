@@ -29,21 +29,6 @@ public class RadioService extends Service{
     public static final String EXTRA_EVENT = "tt.co.justins.radio.radioreminder.extra.EVENT";
     public static final String EXTRA_EVENT_POSITION = "tt.co.justins.radio.radioreminder.extra.EVENT_POSITION";
 
-    public static final String ACTION_WIFI_ON = "tt.co.justins.radio.radioreminder.action.WIFI_ON";
-    public static final String ACTION_WIFI_OFF = "tt.co.justins.radio.radioreminder.action.WIFI_OFF";
-    public static final String ACTION_BLUETOOTH_ON = "tt.co.justins.radio.radioreminder.action.BLUETOOTH_ON";
-    public static final String ACTION_BLUETOOTH_OFF = "tt.co.justins.radio.radioreminder.action.BLUETOOTH_OFF";
-    public static final String ACTION_BLUETOOTH_DEVICE_CONNECT = "tt.co.justins.radio.radioreminder.action.BLUETOOTH_DEVICE_CONNECT";
-    public static final String ACTION_BLUETOOTH_DEVICE_DISCONNECT = "tt.co.justins.radio.radioreminder.action.BLUETOOTH_DEVICE_DISCONNECT";
-    public static final String ACTION_POWER_CONNECTED = "tt.co.justins.radio.radioreminder.action.POWER_ON";
-    public static final String ACTION_POWER_DISCONNECTED = "tt.co.justins.radio.radioreminder.action.POWER_DISCONNECTED";
-    public static final String ACTION_WIFI_NETWORK_CONNECT = "tt.co.justins.radio.radioreminder.action.WIFI_NETWORK_CONNECT";
-    public static final String ACTION_WIFI_NETWORK_DISCONNECT = "tt.co.justins.radio.radioreminder.action.WIFI_NETWORK_DISCONNECT";
-    public static final String ACTION_LOCATION_ON = "tt.co.justins.radio.radioreminder.action.LOCATION_ON";
-    public static final String ACTION_LOCATION_OFF = "tt.co.justins.radio.radioreminder.action.LOCATION_OFF";
-    public static final String ACTION_CELL_DATA_ON = "tt.co.justins.radio.radioreminder.action.CELL_DATA_ON";
-    public static final String ACTION_CELL_DATA_OFF = "tt.co.justins.radio.radioreminder.action.CELL_DATA_OFF";
-
     public static final int SERVICE_WIFI = 0;
     public static final int NEW_EVENT = -1;
 
@@ -166,14 +151,14 @@ public class RadioService extends Service{
 
     //if match is found check to see if the event needs to wait for some time or another event
     //if not execute the event
-    private void processAction(String action) {
+    private void processAction(String actionKey) {
         //cycle through the event list to see if any of the events are looking for this watch action
-        Log.d(tag, "Processing action: " + action);
+        Log.d(tag, "Processing action: " + actionKey);
         for(Event e : eventList) {
-            if (e.watchAction.equals(action)) {
+            if (RadioAction.getKeyFromAction(e.watchAction).equals(actionKey)) {
                 //mark the event so it knows the watch action has occured
-                Log.d(tag, "Watch action for event (" + eventList.indexOf(e) + ") detected: " + action);
-                if(!e.waitAction.equals("")) {
+                Log.d(tag, "Watch action for event (" + eventList.indexOf(e) + ") detected: " + actionKey);
+                if(e.waitAction != null) {
                     e.state = Event.WAITING;
                     Log.d(tag, "Putting the event in the waiting STATE");
                 }
@@ -191,9 +176,9 @@ public class RadioService extends Service{
 
         //cycle through the list and see if any of the events are waiting for this action
         for(Event e : eventList) {
-            if (e.waitAction.equals(action)) {
+            if (RadioAction.getKeyFromAction(e.waitAction).equals(actionKey)) {
                 if(e.state == Event.WAITING) {
-                    Log.d(tag, "Wait action for event (" + eventList.indexOf(e) + ") detected: " + action);
+                    Log.d(tag, "Wait action for event (" + eventList.indexOf(e) + ") detected: " + actionKey);
                     executeEvent(e);
                     return;
                 }
@@ -223,25 +208,25 @@ public class RadioService extends Service{
     private void executeEvent(Event e) {
         Log.d(tag, "Executing event (" + eventList.indexOf(e) + ") with action:" + e.respondAction);
         switch(e.respondAction) {
-            case ACTION_WIFI_OFF:
+            case WIFI_ON:
                 disableWifi();
                 break;
-            case ACTION_WIFI_ON:
+            case WIFI_OFF:
                 enableWifi();
                 break;
-            case ACTION_BLUETOOTH_ON:
+            case BLUETOOTH_ON:
                 enableBluetooth();
                 break;
-            case ACTION_BLUETOOTH_OFF:
+            case BLUETOOTH_OFF:
                 disableBluetooth();
                 break;
-            case ACTION_LOCATION_ON:
+            case LOCATION_ON:
                 break;
-            case ACTION_LOCATION_OFF:
+            case LOCATION_OFF:
                 break;
-            case ACTION_CELL_DATA_ON:
+            case CELL_DATA_ON:
                 break;
-            case ACTION_CELL_DATA_OFF:
+            case CELL_DATA_OFF:
                 break;
         }
         //todo implement rule lifetime
@@ -310,12 +295,12 @@ public class RadioService extends Service{
         batteryReceiver = new ConnectivityReceiver();
         bluetoothReceiver = new ConnectivityReceiver();
 
-        registerReceiver(wifiReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
-        Log.v(tag, "Registered CONNECTIVITY_ACTION receiver");
+        registerReceiver(wifiReceiver, new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION));
+        registerReceiver(wifiReceiver, new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION));
+        Log.v(tag, "Registered WIFI broadcast receiver");
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_POWER_CONNECTED));
-        Log.v(tag, "Registered ACTION_POWER_CONNECTED receiver");
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
-        Log.v(tag, "Registered ACTION_POWER_DISCONNECTED receiver");
+        Log.v(tag, "Registered power broadcast receiver");
         registerReceiver(bluetoothReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
         registerReceiver(bluetoothReceiver, new IntentFilter(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED));
     }

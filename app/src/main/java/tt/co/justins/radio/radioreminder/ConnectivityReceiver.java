@@ -7,6 +7,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -29,21 +31,41 @@ public class ConnectivityReceiver extends BroadcastReceiver {
             Log.v(tag, "key [" + key + "]: " + extras.get(key));
         }
 
-        if(intentAction == ConnectivityManager.CONNECTIVITY_ACTION) {
-            if (extras != null) {
-                //there are two wifi disconnect broadcast, ignore the one that has this key
-                if (!extras.containsKey("otherNetwork")) {
-                    if (extras.containsKey("networkInfo")) {
-                        NetworkInfo netInfo = (NetworkInfo) extras.get("networkInfo");
-                        if (netInfo.getType() == ConnectivityManager.TYPE_WIFI) {
-                            if (netInfo.getState() == NetworkInfo.State.CONNECTED) {
-                                Log.d(tag, "WIFI CONNECTED");
-                            } else if (netInfo.getState() == NetworkInfo.State.DISCONNECTED) {
-                                Log.d(tag, "WIFI DISCONNECTED");
-                                sendIntent(RadioService.ACTION_WIFI_OFF);
-                            }
-                        }
-                    }
+        if(intentAction == WifiManager.NETWORK_STATE_CHANGED_ACTION) {
+            NetworkInfo networkInfo = extras.getParcelable(WifiManager.EXTRA_NETWORK_INFO);
+            if(networkInfo != null) {
+                if(networkInfo.getState() == NetworkInfo.State.CONNECTED) {
+                    WifiInfo wifiInfo = extras.getParcelable(WifiManager.EXTRA_WIFI_INFO);
+                    Log.v(tag, RadioAction.getNameFromAction(RadioAction.Action.WIFI_NETWORK_CONNECT)
+                            + "<>" + wifiInfo.getSSID());
+                }
+            }
+        }
+
+        if(intentAction == WifiManager.NETWORK_STATE_CHANGED_ACTION) {
+            NetworkInfo networkInfo = extras.getParcelable(WifiManager.EXTRA_NETWORK_INFO);
+            if(networkInfo != null) {
+                if(networkInfo.getState() == NetworkInfo.State.DISCONNECTED) {
+                    Log.v(tag, RadioAction.getNameFromAction(RadioAction.Action.WIFI_NETWORK_DISCONNECT)
+                            + "<>" + networkInfo.getExtraInfo());
+                }
+            }
+        }
+
+        if(intentAction == WifiManager.WIFI_STATE_CHANGED_ACTION) {
+            if (extras.getInt(WifiManager.EXTRA_PREVIOUS_WIFI_STATE) == WifiManager.WIFI_STATE_ENABLED) {
+                if (extras.getInt(WifiManager.EXTRA_WIFI_STATE) == WifiManager.WIFI_STATE_DISABLED) {
+                    Log.d(tag, RadioAction.getNameFromAction(RadioAction.Action.WIFI_OFF));
+                    sendIntent(RadioAction.Action.WIFI_OFF);
+                }
+            }
+        }
+
+        if(intentAction == WifiManager.WIFI_STATE_CHANGED_ACTION) {
+            if (extras.getInt(WifiManager.EXTRA_PREVIOUS_WIFI_STATE) == WifiManager.WIFI_STATE_DISABLED) {
+                if (extras.getInt(WifiManager.EXTRA_WIFI_STATE) == WifiManager.WIFI_STATE_ENABLED) {
+                    Log.d(tag, RadioAction.getNameFromAction(RadioAction.Action.WIFI_ON));
+                    sendIntent(RadioAction.Action.WIFI_ON);
                 }
             }
         }
@@ -51,8 +73,8 @@ public class ConnectivityReceiver extends BroadcastReceiver {
         if(intentAction == BluetoothAdapter.ACTION_STATE_CHANGED) {
             if(extras.getInt(BluetoothAdapter.EXTRA_PREVIOUS_STATE) == BluetoothAdapter.STATE_TURNING_ON) {
                 if(extras.getInt(BluetoothAdapter.EXTRA_STATE) == BluetoothAdapter.STATE_ON) {
-                    Log.d(tag, "Bluetooth radio turned on.");
-                    sendIntent(RadioService.ACTION_BLUETOOTH_ON);
+                    Log.d(tag, RadioAction.getNameFromAction(RadioAction.Action.BLUETOOTH_ON));
+                    sendIntent(RadioAction.Action.BLUETOOTH_ON);
                 }
             }
         }
@@ -60,8 +82,8 @@ public class ConnectivityReceiver extends BroadcastReceiver {
         if(intentAction == BluetoothAdapter.ACTION_STATE_CHANGED) {
             if(extras.getInt(BluetoothAdapter.EXTRA_PREVIOUS_STATE) == BluetoothAdapter.STATE_TURNING_OFF) {
                 if(extras.getInt(BluetoothAdapter.EXTRA_STATE) == BluetoothAdapter.STATE_OFF) {
-                    Log.d(tag, "Bluetooth radio turned off.");
-                    sendIntent(RadioService.ACTION_BLUETOOTH_OFF);
+                    Log.d(tag, RadioAction.getNameFromAction(RadioAction.Action.BLUETOOTH_OFF));
+                    sendIntent(RadioAction.Action.BLUETOOTH_OFF);
                 }
             }
         }
@@ -70,8 +92,9 @@ public class ConnectivityReceiver extends BroadcastReceiver {
             if(extras.getInt(BluetoothAdapter.EXTRA_PREVIOUS_CONNECTION_STATE) == BluetoothAdapter.STATE_CONNECTED) {
                 if(extras.getInt(BluetoothAdapter.EXTRA_CONNECTION_STATE) == BluetoothAdapter.STATE_DISCONNECTED) {
                     //send the extra device, so the service can determine which device disconnected
-                    Log.d(tag, "Bluetooth device disconnected. Device: " + extras.getString(BluetoothDevice.EXTRA_DEVICE));
-                    sendIntent(RadioService.ACTION_BLUETOOTH_DEVICE_DISCONNECT, extras);
+                    Log.d(tag, RadioAction.getNameFromAction(RadioAction.Action.BLUETOOTH_DEVICE_DISCONNECT)
+                            + " Device: " + extras.getString(BluetoothDevice.EXTRA_DEVICE));
+                    sendIntent(RadioAction.Action.BLUETOOTH_DEVICE_DISCONNECT, extras);
                 }
             }
         }
@@ -80,28 +103,29 @@ public class ConnectivityReceiver extends BroadcastReceiver {
             if(extras.getInt(BluetoothAdapter.EXTRA_PREVIOUS_CONNECTION_STATE) == BluetoothAdapter.STATE_DISCONNECTED) {
                 if(extras.getInt(BluetoothAdapter.EXTRA_CONNECTION_STATE) == BluetoothAdapter.STATE_CONNECTED) {
                     //send the extra device, so the service can determine which device connected
-                    Log.d(tag, "Bluetooth device connected. Device: " + extras.getString(BluetoothDevice.EXTRA_DEVICE));
-                    sendIntent(RadioService.ACTION_BLUETOOTH_DEVICE_CONNECT, extras);
+                    Log.d(tag, RadioAction.getNameFromAction(RadioAction.Action.BLUETOOTH_DEVICE_CONNECT)
+                            + " Device: " + extras.getString(BluetoothDevice.EXTRA_DEVICE));
+                    sendIntent(RadioAction.Action.BLUETOOTH_DEVICE_CONNECT, extras);
                 }
             }
         }
 
         if(intentAction == Intent.ACTION_POWER_CONNECTED) {
-            Log.d(tag, "POWER CONNECTED");
-            sendIntent(RadioService.ACTION_POWER_CONNECTED);
+            Log.d(tag, RadioAction.getNameFromAction(RadioAction.Action.POWER_CONNECTED));
+            sendIntent(RadioAction.Action.POWER_CONNECTED);
         }
     }
 
-    private void sendIntent(String action, Bundle extras) {
+    private void sendIntent(RadioAction.Action action, Bundle extras) {
         Intent intent = new Intent(context, RadioService.class);
-        intent.setAction(action);
+        intent.setAction(RadioAction.getKeyFromAction(action));
         intent.putExtras(extras);
         context.startService(intent);
     }
 
-    private void sendIntent(String action) {
+    private void sendIntent(RadioAction.Action action) {
         Intent intent = new Intent(context, RadioService.class);
-        intent.setAction(action);
+        intent.setAction(RadioAction.getKeyFromAction(action));
         context.startService(intent);
     }
 }
