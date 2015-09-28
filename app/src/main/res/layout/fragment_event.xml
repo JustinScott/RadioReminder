@@ -8,27 +8,10 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Name: "
-        android:textSize="20dp"
-        android:id="@+id/text_name_label"
-        android:paddingBottom="10dp"/>
-
-    <EditText
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/text_name_edit"
-        android:layout_toRightOf="@+id/text_name_label"
-        android:layout_alignBottom="@id/text_name_label"
-        android:singleLine="true"
-        android:imeOptions="actionDone"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
         android:id="@+id/textView1"
         android:text="@string/section1"
         android:textSize="20dp"
-        android:layout_below="@+id/text_name_label"/>
+        />
 
     <TextView
         android:layout_width="wrap_content"

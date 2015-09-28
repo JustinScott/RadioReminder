@@ -115,7 +115,6 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         mEvent.serviceType = RadioService.SERVICE_WIFI;
         mEvent.watchAction = getSelectedSpinnerItemAsAction(watchSpinner);
         mEvent.respondAction = getSelectedSpinnerItemAsAction(respondSpinner);
-        mEvent.name = editText.getText().toString();
 
         //determine which delay was selected
         RadioGroup buttonGroup = (RadioGroup) getView().findViewById(R.id.radioGroup);
@@ -198,6 +197,7 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.v(tag, "onCreate called. Pos: " + mListPosition);
 
         if(savedInstanceState != null) { //recreation
             mEvent = (Event) savedInstanceState.getSerializable(RadioService.EXTRA_EVENT);
@@ -225,7 +225,6 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         }
 
         setHasOptionsMenu(true);
-        Log.d(tag, "onCreate called. Pos: " + mListPosition);
     }
 
     @Override
@@ -243,9 +242,7 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
     }
 
     private void inflateFragmentState(View v) {
-        Log.d(tag, "Inflating event state.");
-
-        editText = (EditText) v.findViewById(R.id.text_name_edit);
+        Log.v(tag, "Inflating event state.");
 
         // Find all the spinner IDs
         watchSpinner = (Spinner) v.findViewById(R.id.watch_spin);
@@ -294,8 +291,6 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         minsEdit.setOnEditorActionListener(this);
 
         //fill the controls with the values from the event
-        editText.setText(mEvent.name);
-
         watchSpinner.setSelection(getSpinnerPositionFromAction(mEvent.watchAction, watchSpinner));
         respondSpinner.setSelection(getSpinnerPositionFromAction(mEvent.respondAction, respondSpinner));
 
@@ -337,7 +332,7 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         switch(av.getId()) {
             case R.id.net_dev_spin:
                 Object data = av.getSelectedItem();
-                Log.d(tag, "Net/Dev selected item: " + data.toString());
+                Log.v(tag, "Net/Dev selected item: " + data.toString());
                 break;
             case R.id.wait_spin:
                 Log.v(tag, "Wait event spinner selected. Pos: " + pos);

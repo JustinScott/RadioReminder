@@ -1,7 +1,6 @@
 package tt.co.justins.radio.radioreminder;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,7 +45,7 @@ public class EventListAdapter extends BaseAdapter implements ListAdapter {
     public View getView(int i, View view, ViewGroup viewGroup) {
         if(view == null) {
             LayoutInflater inflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            view = inflater.inflate(R.layout.view_event, viewGroup, false);
+            view = inflater.inflate(R.layout.adapter_view_event, viewGroup, false);
         }
 
         TextView textName = (TextView) view.findViewById(R.id.text_name);

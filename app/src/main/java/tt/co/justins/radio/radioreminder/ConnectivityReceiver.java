@@ -93,10 +93,12 @@ public class ConnectivityReceiver extends BroadcastReceiver {
             if(extras.getInt(BluetoothAdapter.EXTRA_PREVIOUS_CONNECTION_STATE) == BluetoothAdapter.STATE_CONNECTED) {
                 if(extras.getInt(BluetoothAdapter.EXTRA_CONNECTION_STATE) == BluetoothAdapter.STATE_DISCONNECTED) {
                     //send the extra device, so the service can determine which device disconnected
+                    BluetoothDevice device = extras.getParcelable(BluetoothDevice.EXTRA_DEVICE);
+                    String deviceName = (device != null) ? device.getName() : "";
                     Log.d(tag, RadioAction.getNameFromAction(RadioAction.Action.BLUETOOTH_DEVICE_DISCONNECT)
-                            + " Device: " + extras.getString(BluetoothDevice.EXTRA_DEVICE));
-                    sendIntent(RadioAction.Action.BLUETOOTH_DEVICE_DISCONNECT, RadioService.EXTRA_NETWORK_DEVICE,
-                            extras.getString(BluetoothDevice.EXTRA_DEVICE));
+                            + " Device: " + deviceName);
+                    sendIntent(RadioAction.Action.BLUETOOTH_DEVICE_DISCONNECT,
+                            RadioService.EXTRA_NETWORK_DEVICE, deviceName);
                 }
             }
         }
@@ -105,10 +107,12 @@ public class ConnectivityReceiver extends BroadcastReceiver {
             if(extras.getInt(BluetoothAdapter.EXTRA_PREVIOUS_CONNECTION_STATE) == BluetoothAdapter.STATE_DISCONNECTED) {
                 if(extras.getInt(BluetoothAdapter.EXTRA_CONNECTION_STATE) == BluetoothAdapter.STATE_CONNECTED) {
                     //send the extra device, so the service can determine which device connected
+                    BluetoothDevice device = extras.getParcelable(BluetoothDevice.EXTRA_DEVICE);
+                    String deviceName = (device != null) ? device.getName() : "";
                     Log.d(tag, RadioAction.getNameFromAction(RadioAction.Action.BLUETOOTH_DEVICE_CONNECT)
-                            + " Device: " + extras.getString(BluetoothDevice.EXTRA_DEVICE));
+                            + " Device: " + deviceName);
                     sendIntent(RadioAction.Action.BLUETOOTH_DEVICE_CONNECT, RadioService.EXTRA_NETWORK_DEVICE,
-                            extras.getString(BluetoothDevice.EXTRA_DEVICE));
+                            deviceName);
                 }
             }
         }

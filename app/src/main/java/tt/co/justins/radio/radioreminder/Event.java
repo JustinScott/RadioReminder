@@ -21,11 +21,9 @@ public class Event implements Serializable {
     public RadioAction.Action waitAction;
     public int waitInterval;
     public int state;
-    public String name;
     public String netDev;
 
     public Event() {
-        name = "new event";
         state = NOT_WAITING;
         waitInterval = 0;
         waitAction = null;

@@ -95,7 +95,7 @@ public class EventListFragment extends ListFragment {
         View view =  inflater.inflate(R.layout.fragment_list, container, false);
 
         // Set the listAdapter for the list view
-        Log.d(tag, "Setting the list listAdapter with an empty list");
+        Log.v(tag, "Setting the list listAdapter with an empty list");
         //ListView listView = (ListView) view.findViewById(R.id.event_list);
         listAdapter = new EventListAdapter(mActivity);
         setListAdapter(listAdapter);
@@ -134,7 +134,7 @@ public class EventListFragment extends ListFragment {
     }
 
     private void startEventActivity(int listPosition) {
-        Log.d(tag, "Launching event activity.");
+        Log.v(tag, "Launching event activity. Position: " + listPosition);
         Event event;
 
         if(listPosition < 0 || listPosition >= eventList.size())

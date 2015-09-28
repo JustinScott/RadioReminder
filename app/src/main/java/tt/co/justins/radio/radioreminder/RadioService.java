@@ -67,7 +67,7 @@ public class RadioService extends Service{
         super.onCreate();
         Log.d(tag, "onCreate called.");
 
-        readListFromFile();
+        //readListFromFile();
 
         if(eventList == null || eventList.size() == 0) {
             //call this incase the service was killed without calling onDestroy
@@ -165,13 +165,13 @@ public class RadioService extends Service{
     //add event to the list of events the service watches for
     private void addNewEvent(Event event) {
         eventList.add(event);
-        Log.d(tag, "Added event to list. Count: " + eventList.size());
+        Log.v(tag, "Added event to list. Count: " + eventList.size());
         logEvent(event);
     }
 
     public List<Event> getEventList() {
         String size = (eventList != null) ? eventList.size() + "" : "null";
-        Log.d(tag, "Sending event list to application. Size: " + size);
+        Log.v(tag, "Sending event list to application. Size: " + size);
         return eventList;
     }
 
@@ -179,7 +179,7 @@ public class RadioService extends Service{
         int size = 0;
         if(eventList != null)
             size = eventList.size();
-        Log.d(tag, "Sending event list size to application. Size: " + size);
+        Log.v(tag, "Sending event list size to application. Size: " + size);
         return size;
     }
 
@@ -191,28 +191,32 @@ public class RadioService extends Service{
     //if not execute the event
     private void processAction(String actionKey, String netDev) {
         //cycle through the event list to see if any of the events are looking for this watch action
-        Log.d(tag, "Processing action: " + actionKey);
+        Log.v(tag, "Processing action: " + actionKey);
         for(Event e : eventList) {
             if (RadioAction.getKeyFromAction(e.watchAction).equals(actionKey)) {
-                //these values default to
-                if(e.netDev.equals(netDev)) {
-                    //mark the event so it knows the watch action has occured
-                    Log.d(tag, "Watch action for event (" + eventList.indexOf(e) + ") detected: " + actionKey);
-                    if (e.waitAction != null) {
-                        e.state = Event.WAITING;
-                        Log.d(tag, "Putting the event in the waiting STATE");
-                    }
-                    //mark the event so it knows the watch action has occured
-                    else if (e.waitInterval != 0) {
-                        //set timer then call execute event
-                        executeDelayedEvent(e);
-                    }
-                    //event doesn't require a delay, so execute immediately
-                    else {
-                        executeEvent(e);
-                    }
-                } else {
+                //check if its a device network action, and compair name
+                if((e.watchAction == RadioAction.Action.BLUETOOTH_DEVICE_CONNECT ||
+                        e.watchAction == RadioAction.Action.BLUETOOTH_DEVICE_DISCONNECT ||
+                        e.watchAction == RadioAction.Action.WIFI_NETWORK_CONNECT ||
+                        e.watchAction == RadioAction.Action.WIFI_NETWORK_DISCONNECT) &&
+                        !e.netDev.equals(netDev)) {
                     Log.d(tag, "Network / Device mismatch, ignoring action. (" + e.netDev + ") (" + netDev + ")");
+                    break;
+                }
+                //mark the event so it knows the watch action has occured
+                Log.d(tag, "Watch action for event (" + eventList.indexOf(e) + ") detected: " + actionKey);
+                if (e.waitAction != null) {
+                    e.state = Event.WAITING;
+                    Log.d(tag, "Putting the event in the waiting STATE");
+                }
+                //mark the event so it knows the watch action has occured
+                else if (e.waitInterval != 0) {
+                    //set timer then call execute event
+                    executeDelayedEvent(e);
+                }
+                //event doesn't require a delay, so execute immediately
+                else {
+                    executeEvent(e);
                 }
             }
         }
@@ -220,12 +224,20 @@ public class RadioService extends Service{
         //cycle through the list and see if any of the events are waiting for this action
         for(Event e : eventList) {
             if (RadioAction.getKeyFromAction(e.waitAction).equals(actionKey)) {
-                if(e.netDev.equals(netDev)) {
-                    if (e.state == Event.WAITING) {
-                        Log.d(tag, "Wait action for event (" + eventList.indexOf(e) + ") detected: " + actionKey);
-                        executeEvent(e);
-                        return;
-                    }
+                //check if its a device network action, and the values match
+                if((e.watchAction == RadioAction.Action.BLUETOOTH_DEVICE_CONNECT ||
+                        e.watchAction == RadioAction.Action.BLUETOOTH_DEVICE_DISCONNECT ||
+                        e.watchAction == RadioAction.Action.WIFI_NETWORK_CONNECT ||
+                        e.watchAction == RadioAction.Action.WIFI_NETWORK_DISCONNECT) &&
+                                !e.netDev.equals(netDev)) {
+                    Log.d(tag, "Network / Device mismatch, ignoring action. (" + e.netDev + ") (" + netDev + ")");
+                    break;
+                }
+
+                if (e.state == Event.WAITING) {
+                    Log.d(tag, "Wait action for event (" + eventList.indexOf(e) + ") detected: " + actionKey);
+                    executeEvent(e);
+                    return;
                 }
             }
         }
@@ -279,14 +291,14 @@ public class RadioService extends Service{
     }
 
     private void logEvent(Event e) {
-        Log.d(tag, "-- Watch: " + e.watchAction);
-        Log.d(tag, "-- Response: " + e.respondAction);
+        Log.v(tag, "-- Watch: " + e.watchAction);
+        Log.v(tag, "-- Response: " + e.respondAction);
         if(e.waitAction != null)
-            Log.d(tag, "-- Wait Action: " + e.waitAction);
+            Log.v(tag, "-- Wait Action: " + e.waitAction);
         else if(e.waitInterval != 0)
-            Log.d(tag, "-- Wait Interval: " + e.waitInterval + " mins.");
+            Log.v(tag, "-- Wait Interval: " + e.waitInterval + " mins.");
         else
-            Log.d(tag, "-- No Wait Specified.");
+            Log.v(tag, "-- No Wait Specified.");
     }
 
     private void disableWifi() {
