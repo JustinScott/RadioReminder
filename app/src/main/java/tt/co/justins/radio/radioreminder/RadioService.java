@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.WifiManager;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -34,6 +35,7 @@ public class RadioService extends Service{
 
     public static final String EXTRA_EVENT = "tt.co.justins.radio.radioreminder.extra.EVENT";
     public static final String EXTRA_EVENT_POSITION = "tt.co.justins.radio.radioreminder.extra.EVENT_POSITION";
+    public static final String EXTRA_NETWORK_DEVICE = "tt.co.justins.radio.radioreminder.extra.NETWORK_DEVICE";
 
     public static final int SERVICE_WIFI = 0;
     public static final int NEW_EVENT = -1;
@@ -81,6 +83,11 @@ public class RadioService extends Service{
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             String action = intent.getAction();
+            Bundle extras = intent.getExtras();
+            String netDev = "";
+            if(extras != null) {
+                netDev = extras.getString(EXTRA_NETWORK_DEVICE, "");
+            }
             int position;
             Log.d(tag, "Service started with action: " + action);
             switch(action) {
@@ -129,7 +136,7 @@ public class RadioService extends Service{
                 //processAction should ignore any unknown actions, so there is no need to have a
                 //case for each action dropping through to process action.
                 default:
-                    processAction(action);
+                    processAction(action, netDev);
                     break;
             }
         }
@@ -182,25 +189,30 @@ public class RadioService extends Service{
 
     //if match is found check to see if the event needs to wait for some time or another event
     //if not execute the event
-    private void processAction(String actionKey) {
+    private void processAction(String actionKey, String netDev) {
         //cycle through the event list to see if any of the events are looking for this watch action
         Log.d(tag, "Processing action: " + actionKey);
         for(Event e : eventList) {
             if (RadioAction.getKeyFromAction(e.watchAction).equals(actionKey)) {
-                //mark the event so it knows the watch action has occured
-                Log.d(tag, "Watch action for event (" + eventList.indexOf(e) + ") detected: " + actionKey);
-                if(e.waitAction != null) {
-                    e.state = Event.WAITING;
-                    Log.d(tag, "Putting the event in the waiting STATE");
-                }
-                //mark the event so it knows the watch action has occured
-                else if(e.waitInterval != 0) {
-                    //set timer then call execute event
-                    executeDelayedEvent(e);
-                }
-                //event doesn't require a delay, so execute immediately
-                else {
-                    executeEvent(e);
+                //these values default to
+                if(e.netDev.equals(netDev)) {
+                    //mark the event so it knows the watch action has occured
+                    Log.d(tag, "Watch action for event (" + eventList.indexOf(e) + ") detected: " + actionKey);
+                    if (e.waitAction != null) {
+                        e.state = Event.WAITING;
+                        Log.d(tag, "Putting the event in the waiting STATE");
+                    }
+                    //mark the event so it knows the watch action has occured
+                    else if (e.waitInterval != 0) {
+                        //set timer then call execute event
+                        executeDelayedEvent(e);
+                    }
+                    //event doesn't require a delay, so execute immediately
+                    else {
+                        executeEvent(e);
+                    }
+                } else {
+                    Log.d(tag, "Network / Device mismatch, ignoring action. (" + e.netDev + ") (" + netDev + ")");
                 }
             }
         }
@@ -208,10 +220,12 @@ public class RadioService extends Service{
         //cycle through the list and see if any of the events are waiting for this action
         for(Event e : eventList) {
             if (RadioAction.getKeyFromAction(e.waitAction).equals(actionKey)) {
-                if(e.state == Event.WAITING) {
-                    Log.d(tag, "Wait action for event (" + eventList.indexOf(e) + ") detected: " + actionKey);
-                    executeEvent(e);
-                    return;
+                if(e.netDev.equals(netDev)) {
+                    if (e.state == Event.WAITING) {
+                        Log.d(tag, "Wait action for event (" + eventList.indexOf(e) + ") detected: " + actionKey);
+                        executeEvent(e);
+                        return;
+                    }
                 }
             }
         }
