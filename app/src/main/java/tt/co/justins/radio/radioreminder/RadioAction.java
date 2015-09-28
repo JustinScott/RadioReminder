@@ -13,6 +13,9 @@ public class RadioAction {
     
     static String getNameFromAction(Action action) {
         String temp = "";
+
+        if(action == null) return temp;
+
         switch(action) {
             case WIFI_ON:
                 temp = "WIFI Radio On";
@@ -62,6 +65,9 @@ public class RadioAction {
 
     static String getKeyFromAction(Action action) {
         String temp = "";
+
+        if(action == null) return temp;
+
         switch(action) {
             case WIFI_ON:
                 temp = "tt.co.justins.radio.radioreminder.action.WIFI_ON";

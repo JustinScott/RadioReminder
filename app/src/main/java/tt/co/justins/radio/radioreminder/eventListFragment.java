@@ -50,7 +50,7 @@ public class EventListFragment extends ListFragment {
             }
 
             //kill the service if it is running and has an empty event list
-            if(mService.isServiceStarted() && mService.getEventListSize() == 0)
+            if(eventList == null || eventList.size() == 0)
             {
                 Log.d(tag, "Service running in background with empty list. Turning it off.");
                 Intent intent = new Intent(getActivity(), RadioService.class);
@@ -120,9 +120,10 @@ public class EventListFragment extends ListFragment {
     @Override
     public void onStop() {
         super.onStop();
-        // Unbind from the service
+        Log.v(tag, "onStop called.");
         if (mBound) {
-            mActivity.unbindService(mConnection);
+            Log.v(tag, "Unbind from service.");
+                    mActivity.unbindService(mConnection);
             mBound = false;
         }
     }

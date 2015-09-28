@@ -22,6 +22,7 @@ public class Event implements Serializable {
     public int waitInterval;
     public int state;
     public String name;
+    public String netDev;
 
     public Event() {
         name = "new event";
@@ -30,5 +31,6 @@ public class Event implements Serializable {
         waitAction = null;
         watchAction = RadioAction.Action.WIFI_OFF;
         respondAction = RadioAction.Action.WIFI_OFF;
+        netDev = "";
     }
 }

@@ -315,7 +315,6 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
                     if(av.getSelectedItem().toString().equals("Connect to Bluetooth device") ||
                             av.getSelectedItem().toString().equals("Disconnect from Bluetooth device")) {
                         populateNetDevSpinnerBt();
-                        //netDevSpinner.setEnabled(true);
                         break;
                     }
 
