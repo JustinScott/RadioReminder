@@ -61,8 +61,11 @@ public class EventListAdapter extends BaseAdapter implements ListAdapter {
         String wait = "Wait Event: ";
         if(event.waitAction == null)
             wait += event.waitInterval + " minute(s).";
-        else
+        else {
             wait += RadioAction.getNameFromAction(event.waitAction);
+            if(event.netDev != "")
+                wait += " (" + event.netDev + ")";
+        }
         textWait.setText(wait);
 
         return view;

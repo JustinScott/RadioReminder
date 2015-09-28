@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -25,35 +26,39 @@ import android.widget.ListAdapter;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
-import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class EventFragment extends Fragment implements AdapterView.OnItemSelectedListener, TextView.OnEditorActionListener {
-    private static String tag = "EventFragment";
+    private static final String BT_DEVICE_LIST = "Bluetooth device list";
+    private static final String RADIO_PREFRENCES = "Radio Reminder Preferences";
+    private static final String WIFI_DEVICE_LIST = "Wifi device list";
+
+    private static final String tag = "EventFragment";
 
     private Event mEvent = null;
-    private int mListPosition = -1;
+    private int mListPosition = RadioService.NEW_EVENT;
 
-    private Spinner watchSpinner = null;
-    private Spinner respondSpinner = null;
-    private Spinner waitEventSpinner = null;
+    private Spinner watchSpinner;
+    private Spinner respondSpinner;
+    private Spinner waitEventSpinner;
     private Spinner netDevSpinner;
 
-    private EditText hoursEdit = null;
-    private EditText minsEdit = null;
-    private EditText editText = null;
+    private EditText hoursEdit;
+    private EditText minsEdit;
+    private EditText editText;
 
-    RadioButton delayEventButton = null;
-    RadioButton delayIntervalButton = null;
-    RadioButton delayNoneButton = null;
+    private RadioButton delayEventButton;
+    private RadioButton delayIntervalButton;
+    private RadioButton delayNoneButton;
 
     private int lameSpinnerHack;
-    private List<String> pairedBluetoothDevices;
-    private List<String> pairedWifiNetworks;
+    private List<String> mPairedBluetoothDevices;
+    private List<String> mPairedWifiNetworks;
 
 
     public static EventFragment newInstance(Bundle args) {
@@ -61,6 +66,7 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         fragment.setArguments(args);
         return fragment;
     }
+
     public EventFragment() {
         // Required empty public constructor
     }
@@ -90,9 +96,9 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
     }
 
     private void deleteEvent() {
-        //-1 means it's a new event that hasn't been added to the service yet, so just jump to
-        //the list activity
-        if(mListPosition != -1) {
+        //if position equals new event, the event hasn't been added to the service yet
+        //so skip adding it to the service
+        if(mListPosition != RadioService.NEW_EVENT) {
             //send event to the service
             Intent intent = new Intent(getActivity(), RadioService.class);
             intent.setAction(RadioService.SERVICE_EVENT_DELETE);
@@ -119,6 +125,9 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
             case R.id.delay_event_button:
                 mEvent.waitAction = getSelectedSpinnerItemAsAction(waitEventSpinner);
                 mEvent.waitInterval = 0;
+                //getselecteditem returns null if empty
+                Object netDev = netDevSpinner.getSelectedItem();
+                mEvent.netDev = (netDev == null) ? "" : netDev.toString();
                 break;
             case R.id.delay_interval_button:
                 String sHour = hoursEdit.getText().toString();
@@ -173,9 +182,14 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
 
     private int getSpinnerPositionFromAction(RadioAction.Action action, Spinner spinner) {
         String actionName = RadioAction.getNameFromAction(action);
+        int ret = getSpinnerPositionFromString(actionName, spinner);
+        return ret;
+    }
+
+    private int getSpinnerPositionFromString(String spinnerItem, Spinner spinner) {
         ListAdapter adapter = (ListAdapter) spinner.getAdapter();
         for (int x = 0; x < adapter.getCount(); x++) {
-            if (actionName.equals(adapter.getItem(x).toString()))
+            if (spinnerItem.equals(adapter.getItem(x).toString()))
                 return x;
         }
         return 0;
@@ -200,6 +214,14 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
             } else {
                 throw new IllegalArgumentException("getArguments returns null.");
             }
+
+            SharedPreferences preferences = getActivity().getSharedPreferences(RADIO_PREFRENCES, 0);
+            if(preferences.contains(BT_DEVICE_LIST))
+                mPairedBluetoothDevices = new ArrayList<>(preferences.getStringSet(BT_DEVICE_LIST,
+                        new HashSet<String>()));
+            if(preferences.contains(WIFI_DEVICE_LIST))
+                mPairedBluetoothDevices = new ArrayList<>(preferences.getStringSet(BT_DEVICE_LIST,
+                        new HashSet<String>()));
         }
 
         setHasOptionsMenu(true);
@@ -281,6 +303,17 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
             Log.v(tag, "Event wait action not empty.");
             waitEventSpinner.setSelection(getSpinnerPositionFromAction(mEvent.waitAction, waitEventSpinner));
             delayEventButton.setChecked(true);
+
+            //check if the wait action is connecting/disconnecting from device/network
+            if(mEvent.waitAction == RadioAction.Action.BLUETOOTH_DEVICE_CONNECT ||
+                    mEvent.waitAction == RadioAction.Action.BLUETOOTH_DEVICE_DISCONNECT) {
+                populateNetDevSpinnerBt(false);
+            }
+
+            if(mEvent.waitAction == RadioAction.Action.WIFI_NETWORK_CONNECT ||
+                    mEvent.waitAction == RadioAction.Action.WIFI_NETWORK_DISCONNECT) {
+                populateNetDevSpinnerWifi();
+            }
         }
         else if(mEvent.waitInterval != 0) {
             hoursEdit.setText((mEvent.waitInterval / 60) + "");
@@ -314,14 +347,13 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
 
                     if(av.getSelectedItem().toString().equals("Connect to Bluetooth device") ||
                             av.getSelectedItem().toString().equals("Disconnect from Bluetooth device")) {
-                        populateNetDevSpinnerBt();
+                        populateNetDevSpinnerBt(false);
                         break;
                     }
 
                     if(av.getSelectedItem().toString().equals("Connect to WIFI network") ||
                             av.getSelectedItem().toString().equals("Disconnect from WIFI network")) {
                         populateNetDevSpinnerWifi();
-                        netDevSpinner.setEnabled(true);
                         break;
                     }
 
@@ -332,22 +364,38 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         }
     }
 
-    private void populateNetDevSpinnerBt() {
-
+    //refreshList = true, forces a refresh, even if the list is available
+    private void populateNetDevSpinnerBt(final boolean refreshList) {
+        boolean newData = false;
         //make this a background thread because it needs to sleep
-        new Handler().post(new Runnable() {
+        final Handler handler = new Handler();
+        new Thread(new Runnable() {
+            @Override
             public void run() {
-                populateNetDevSpinnerBt();
-                netDevSpinner.setEnabled(true);
-            }
 
-            private void populateNetDevSpinnerBt() {
                 //save this list so it only needs to be created once
-                if(pairedBluetoothDevices == null)
-                    pairedBluetoothDevices = getBluetoothDevices();
-                ArrayAdapter adapter = new ArrayAdapter(getActivity(), android.R.layout.simple_spinner_item, pairedBluetoothDevices);
-                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                netDevSpinner.setAdapter(adapter);
+                if(mPairedBluetoothDevices == null || refreshList == true) {
+                    Log.d(tag, "Device list is null, or forcing refresh.");
+                    mPairedBluetoothDevices = getBluetoothDevices();
+                    SharedPreferences prefrences = getActivity().getSharedPreferences(RADIO_PREFRENCES, 0);
+                    SharedPreferences.Editor editor = prefrences.edit();
+                    editor.putStringSet(BT_DEVICE_LIST, new HashSet<>(mPairedBluetoothDevices));
+                    editor.commit();
+                }
+
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        //UI stuff gets posted back on the UI thread
+                        ArrayAdapter adapter = new ArrayAdapter(getActivity(),
+                                android.R.layout.simple_spinner_item, mPairedBluetoothDevices);
+                        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+                        netDevSpinner.setAdapter(adapter);
+                        netDevSpinner.setSelection(getSpinnerPositionFromString(mEvent.netDev, netDevSpinner));
+                        netDevSpinner.setEnabled(true);
+                    }
+                });
             }
 
             private  List<String> getBluetoothDevices() {
@@ -364,6 +412,7 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
                     adapter.enable();
                 }
 
+                //Wait for radio to kick in
                 Log.d(tag, "Sleeping for 2 seconds.");
                 SystemClock.sleep(2000);
 
@@ -380,15 +429,23 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
 
                 return devices;
             }
-        });
+        }).start();
     }
 
     public void populateNetDevSpinnerWifi() {
-        if(pairedWifiNetworks == null)
-            pairedWifiNetworks = getWifiNetworks();
-        ArrayAdapter adapter = new ArrayAdapter(getActivity(), android.R.layout.simple_spinner_item, pairedWifiNetworks);
+        if(mPairedWifiNetworks == null) {
+            Log.d(tag, "Network list is null.");
+            mPairedWifiNetworks = getWifiNetworks();
+            SharedPreferences prefrences = getActivity().getSharedPreferences(RADIO_PREFRENCES, 0);
+            SharedPreferences.Editor editor = prefrences.edit();
+            editor.putStringSet(WIFI_DEVICE_LIST, new HashSet<>(mPairedWifiNetworks));
+            editor.commit();
+        }
+        ArrayAdapter adapter = new ArrayAdapter(getActivity(), android.R.layout.simple_spinner_item, mPairedWifiNetworks);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         netDevSpinner.setAdapter(adapter);
+        netDevSpinner.setSelection(getSpinnerPositionFromString(mEvent.netDev, netDevSpinner));
+        netDevSpinner.setEnabled(true);
     }
 
     public List<String> getWifiNetworks() {
