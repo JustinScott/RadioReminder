@@ -53,6 +53,8 @@ public class RadioService extends Service{
     private Timer timer;
     private boolean mServiceInitialized = false;
     private String mSaveFileName = "eventlist.save";
+    private Notification mServiceNotification;
+    private int mServiceNotificationId = 420;
 
     public class RadioBinder extends Binder {
         RadioService getService() {
@@ -325,28 +327,29 @@ public class RadioService extends Service{
         Log.d(tag, "Bluetooth Enabled");
     }
 
-    //creates a notification and sends it to the notification drawer
+    //creates a notification and makes it a foreground service
     private void setServiceNotification() {
-        String message = "Tracking " + eventList.size() + " events.";
+        String message = "Tracking " + eventList.size() + " event(s). Touch to view them.";
         Notification.Builder mBuilder = new Notification.Builder(this)
                 .setContentTitle("Radio Reminder")
                 .setContentText(message)
-                .setSmallIcon(R.drawable.ic_notification);
+                .setSmallIcon(R.drawable.ic_notification)
+                .setOngoing(true);
 
         Intent activityIntent = new Intent(this, ListActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, activityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         mBuilder.setContentIntent(pendingIntent);
+        mServiceNotification = mBuilder.build();
 
-        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.notify(sServiceNotificationId, mBuilder.build());
+        Log.d(tag, "Foreground started, and notification set.");
+        startForeground(mServiceNotificationId, mServiceNotification);
         mServiceNotificationSet = true;
     }
 
     private void removeServiceNotification() {
         if(mServiceNotificationSet) {
-            NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            mNotificationManager.cancel(sServiceNotificationId);
-            Log.d(tag, "Notification removed");
+            stopForeground(true);
+            Log.d(tag, "Foreground stopped, and Notification removed.");
             mServiceNotificationSet = false;
         }
     }
