@@ -43,7 +43,9 @@ public class RadioService extends Service{
     private static final String tag = "RadioService";
 
     private static int sServiceNotificationId = 0;
+    private int sServiceNotificationColor = 0x4c99;
     private boolean mServiceNotificationSet = false;
+    private Notification mServiceNotification;
 
     private ConnectivityReceiver radioBroadcastReceiver;
     private ConnectivityReceiver batteryReceiver;
@@ -53,8 +55,6 @@ public class RadioService extends Service{
     private Timer timer;
     private boolean mServiceInitialized = false;
     private String mSaveFileName = "eventlist.save";
-    private Notification mServiceNotification;
-    private int mServiceNotificationId = 420;
 
     public class RadioBinder extends Binder {
         RadioService getService() {
@@ -334,7 +334,8 @@ public class RadioService extends Service{
                 .setContentTitle("Radio Reminder")
                 .setContentText(message)
                 .setSmallIcon(R.drawable.ic_notification)
-                .setOngoing(true);
+                .setOngoing(true)
+                .setColor(sServiceNotificationColor);
 
         Intent activityIntent = new Intent(this, ListActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, activityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -342,7 +343,7 @@ public class RadioService extends Service{
         mServiceNotification = mBuilder.build();
 
         Log.d(tag, "Foreground started, and notification set.");
-        startForeground(mServiceNotificationId, mServiceNotification);
+        startForeground(sServiceNotificationId, mServiceNotification);
         mServiceNotificationSet = true;
     }
 
