@@ -48,7 +48,6 @@ public class EventListAdapter extends BaseAdapter implements ListAdapter {
             view = inflater.inflate(R.layout.adapter_view_event, viewGroup, false);
         }
 
-        TextView textName = (TextView) view.findViewById(R.id.text_name);
         TextView textResponse = (TextView) view.findViewById(R.id.text_response_event);
         TextView textWatch = (TextView) view.findViewById(R.id.text_watch_event);
         TextView textWait = (TextView) view.findViewById(R.id.text_delay);

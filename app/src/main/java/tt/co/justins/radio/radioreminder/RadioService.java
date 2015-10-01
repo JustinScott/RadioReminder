@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.WifiManager;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -41,20 +42,17 @@ public class RadioService extends Service{
     public static final int NEW_EVENT = -1;
 
     private static final String tag = "RadioService";
+    private static final String mSaveFileName = "eventlist.save";
 
-    private static int sServiceNotificationId = 0;
-    private int sServiceNotificationColor = 0x4c99;
-    private boolean mServiceNotificationSet = false;
-    private Notification mServiceNotification;
+    private static final int sServiceNotificationId = 420;
+    private static final int sServiceNotificationColor = 0x4c99;
+
+    private boolean mServiceForegroundSet = false;
+    private boolean mServiceInitialized = false;
 
     private ConnectivityReceiver radioBroadcastReceiver;
-    private ConnectivityReceiver batteryReceiver;
-    private ConnectivityReceiver bluetoothReceiver;
 
     private List<Event> eventList;
-    private Timer timer;
-    private boolean mServiceInitialized = false;
-    private String mSaveFileName = "eventlist.save";
 
     public class RadioBinder extends Binder {
         RadioService getService() {
@@ -177,18 +175,6 @@ public class RadioService extends Service{
         return eventList;
     }
 
-    public int getEventListSize() {
-        int size = 0;
-        if(eventList != null)
-            size = eventList.size();
-        Log.v(tag, "Sending event list size to application. Size: " + size);
-        return size;
-    }
-
-    public boolean isServiceStarted() {
-        return mServiceInitialized;
-    }
-
     //if match is found check to see if the event needs to wait for some time or another event
     //if not execute the event
     private void processAction(String actionKey, String netDev) {
@@ -260,7 +246,7 @@ public class RadioService extends Service{
 
     private void executeDelayedEvent(Event e) {
         Log.d(tag, "Scheduling event (" + eventList.indexOf(e) + ") to execute in " + e.waitInterval + " min(s).");
-        timer = new Timer();
+        Timer timer = new Timer();
         timer.schedule(new WaitTask(e), (e.waitInterval * 60 * 1000));
     }
 
@@ -334,24 +320,26 @@ public class RadioService extends Service{
                 .setContentTitle("Radio Reminder")
                 .setContentText(message)
                 .setSmallIcon(R.drawable.ic_notification)
-                .setOngoing(true)
-                .setColor(sServiceNotificationColor);
+                .setOngoing(true);
+
+        //conditional comp so target-sdk can be lower than 21
+        if(Build.VERSION.SDK_INT >= 21)
+                mBuilder.setColor(sServiceNotificationColor);
 
         Intent activityIntent = new Intent(this, ListActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, activityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         mBuilder.setContentIntent(pendingIntent);
-        mServiceNotification = mBuilder.build();
 
         Log.d(tag, "Foreground started, and notification set.");
-        startForeground(sServiceNotificationId, mServiceNotification);
-        mServiceNotificationSet = true;
+        startForeground(sServiceNotificationId, mBuilder.build());
+        mServiceForegroundSet = true;
     }
 
     private void removeServiceNotification() {
-        if(mServiceNotificationSet) {
+        if(mServiceForegroundSet) {
             stopForeground(true);
             Log.d(tag, "Foreground stopped, and Notification removed.");
-            mServiceNotificationSet = false;
+            mServiceForegroundSet = false;
         }
     }
 
@@ -364,6 +352,7 @@ public class RadioService extends Service{
             fileOut.close();
             Log.d(tag, "Saved eventlist to file.");
         } catch (FileNotFoundException e) {
+            Log.d(tag, "File not found.");
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
@@ -379,6 +368,7 @@ public class RadioService extends Service{
             objIn.close();
             Log.d(tag, "Restored eventList from save file. Size: " + eventList.size());
         } catch (FileNotFoundException e) {
+            Log.d(tag, "File not found.");
             e.printStackTrace();
         } catch (StreamCorruptedException e) {
             e.printStackTrace();
@@ -393,14 +383,18 @@ public class RadioService extends Service{
     private void registerBroadcastReceivers() {
         radioBroadcastReceiver = new ConnectivityReceiver();
 
+        //wifi radio on/off, wifi network connect/disconnect
         registerReceiver(radioBroadcastReceiver, new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION));
         registerReceiver(radioBroadcastReceiver, new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION));
-        Log.v(tag, "Registered WIFI broadcast receiver");
+        Log.v(tag, "Registered WIFI broadcast receivers");
+        //plug/unplug usb power
         registerReceiver(radioBroadcastReceiver, new IntentFilter(Intent.ACTION_POWER_CONNECTED));
         registerReceiver(radioBroadcastReceiver, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
         Log.v(tag, "Registered power broadcast receiver");
+        //bluetooth radio on/off, bt device connect/disconnect
         registerReceiver(radioBroadcastReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
         registerReceiver(radioBroadcastReceiver, new IntentFilter(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED));
+        Log.v(tag, "Registered Bluetooth broadcast receiver");
     }
 
     //destroy all the receivers
@@ -418,7 +412,7 @@ public class RadioService extends Service{
     @Override
     public void onDestroy() {
         Log.v(tag, "onDestroy called.");
-        if(mServiceNotificationSet)
+        if(mServiceForegroundSet)
             removeServiceNotification();
         if(mServiceInitialized)
             unregisterBroadcastReceivers();
