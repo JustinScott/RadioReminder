@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -32,6 +33,7 @@ public class RadioService extends Service{
 
     public static final String SERVICE_EXIT = "tt.co.justins.radio.radioreminder.action.EXIT";
     public static final String SERVICE_EVENT = "tt.co.justins.radio.radioreminder.action.EVENT";
+    public static final String SERVICE_START = "tt.co.justins.radio.radioreminder.action.START";
     public static final String SERVICE_EVENT_DELETE = "tt.co.justins.radio.radioreminder.action.EVENT_DELETE";
 
     public static final String EXTRA_EVENT = "tt.co.justins.radio.radioreminder.extra.EVENT";
@@ -91,6 +93,12 @@ public class RadioService extends Service{
             int position;
             Log.d(tag, "Service started with action: " + action);
             switch(action) {
+                case SERVICE_START:
+                    readListFromFile();
+                    if(eventList == null || eventList.size() < 1)
+                        stopSelf();
+                    break;
+
                 case SERVICE_EXIT:
                     stopSelf();
                     break;
@@ -361,11 +369,14 @@ public class RadioService extends Service{
 
     private void readListFromFile() {
         try {
-            FileInputStream fileIn = openFileInput(mSaveFileName);
+            //FileInputStream fileIn = openFileInput(mSaveFileName);
+            File saveFile = new File(mSaveFileName);
+            FileInputStream fileIn = new FileInputStream(saveFile);
             ObjectInputStream objIn = new ObjectInputStream(fileIn);
             eventList = (List<Event>) objIn.readObject();
             fileIn.close();
             objIn.close();
+            saveFile.delete();
             Log.d(tag, "Restored eventList from save file. Size: " + eventList.size());
         } catch (FileNotFoundException e) {
             Log.d(tag, "File not found.");
@@ -395,6 +406,7 @@ public class RadioService extends Service{
         registerReceiver(radioBroadcastReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
         registerReceiver(radioBroadcastReceiver, new IntentFilter(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED));
         Log.v(tag, "Registered Bluetooth broadcast receiver");
+        registerReceiver(radioBroadcastReceiver, new IntentFilter(Intent.ACTION_BOOT_COMPLETED));
     }
 
     //destroy all the receivers

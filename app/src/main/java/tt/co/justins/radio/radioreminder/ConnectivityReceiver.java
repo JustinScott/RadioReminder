@@ -22,6 +22,11 @@ public class ConnectivityReceiver extends BroadcastReceiver {
         String intentAction = intent.getAction();
         Bundle extras = intent.getExtras();
 
+        if(intentAction == Intent.ACTION_BOOT_COMPLETED) {
+            Log.d(tag, "Phone booted up.");
+            sendIntent(RadioService.SERVICE_START, null, null);
+        }
+
         if(intentAction == WifiManager.NETWORK_STATE_CHANGED_ACTION) {
             NetworkInfo networkInfo = extras.getParcelable(WifiManager.EXTRA_NETWORK_INFO);
             if(networkInfo != null) {
@@ -136,8 +141,12 @@ public class ConnectivityReceiver extends BroadcastReceiver {
     }
 
     private void sendIntent(RadioAction.Action action, String key, String value) {
+        sendIntent(RadioAction.getKeyFromAction(action), key, value);
+    }
+
+    private void sendIntent(String action, String key, String value) {
         Intent intent = new Intent(context, RadioService.class);
-        intent.setAction(RadioAction.getKeyFromAction(action));
+        intent.setAction(action);
         if(key != null) {
             Bundle bundle = new Bundle();
             bundle.putString(key, value);
