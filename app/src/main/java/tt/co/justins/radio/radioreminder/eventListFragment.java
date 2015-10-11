@@ -49,12 +49,19 @@ public class EventListFragment extends ListFragment {
                 listAdapter.notifyDataSetChanged();
             }
 
-            //kill the service if it is running and has an empty event list
-            if(eventList == null || eventList.size() == 0)
-            {
-                Log.d(tag, "Service running in background with empty list. Turning it off.");
+//            //kill the service if it is running and has an empty event list
+//            if(eventList == null || eventList.size() == 0)
+//            {
+//                Log.d(tag, "Service running in background with empty list. Turning it off.");
+//                Intent intent = new Intent(getActivity(), RadioService.class);
+//                getActivity().stopService(intent);
+//            }
+
+            //if the event list isnt empty and the service isnt running
+            if(!mService.isServiceStarted() && (eventList != null && eventList.size() != 0)) {
                 Intent intent = new Intent(getActivity(), RadioService.class);
-                getActivity().stopService(intent);
+                intent.setAction(RadioService.SERVICE_START);
+                getActivity().startService(intent);
             }
         }
 

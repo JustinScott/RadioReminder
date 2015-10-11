@@ -51,10 +51,12 @@ public class RadioService extends Service{
 
     private boolean mServiceForegroundSet = false;
     private boolean mServiceInitialized = false;
+    private boolean mServiceStarted = false;
 
     private ConnectivityReceiver radioBroadcastReceiver;
 
     private List<Event> eventList;
+
 
     public class RadioBinder extends Binder {
         RadioService getService() {
@@ -67,7 +69,7 @@ public class RadioService extends Service{
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(tag, "onCreate called.");
+        Log.v(tag, "onCreate called.");
 
         //readListFromFile();
 
@@ -75,8 +77,6 @@ public class RadioService extends Service{
             //call this incase the service was killed without calling onDestroy
             NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             mNotificationManager.cancelAll();
-        } else {
-            setServiceNotification();
         }
     }
 
@@ -92,11 +92,19 @@ public class RadioService extends Service{
             }
             int position;
             Log.d(tag, "Service started with action: " + action);
+
+            //used to determine if the service is in a permanent start state
+            mServiceStarted = true;
+
             switch(action) {
                 case SERVICE_START:
                     readListFromFile();
-                    if(eventList == null || eventList.size() < 1)
+                    if(eventList == null || eventList.size() < 1) {
                         stopSelf();
+                    } else {
+                        registerBroadcastReceivers();
+                        setServiceNotification();
+                    }
                     break;
 
                 case SERVICE_EXIT:
@@ -182,6 +190,8 @@ public class RadioService extends Service{
         Log.v(tag, "Sending event list to application. Size: " + size);
         return eventList;
     }
+
+    public boolean isServiceStarted() { return mServiceStarted; }
 
     //if match is found check to see if the event needs to wait for some time or another event
     //if not execute the event
@@ -353,12 +363,19 @@ public class RadioService extends Service{
 
     private void writeListToFile() {
         try {
-            FileOutputStream fileOut = openFileOutput(mSaveFileName, Context.MODE_PRIVATE);
+            File saveFile = new File(getFilesDir(), mSaveFileName);
+
+            //this function is called every time an event gets deleted
+            //check for empty condition
+            if(saveFile.exists() && eventList.size() == 0)
+                saveFile.delete();
+
+            FileOutputStream fileOut = new FileOutputStream(saveFile);
             ObjectOutputStream objOut = new ObjectOutputStream(fileOut);
             objOut.writeObject(eventList);
             objOut.close();
             fileOut.close();
-            Log.d(tag, "Saved eventlist to file.");
+            Log.d(tag, "Saved event list to file.");
         } catch (FileNotFoundException e) {
             Log.d(tag, "File not found.");
             e.printStackTrace();
@@ -369,17 +386,18 @@ public class RadioService extends Service{
 
     private void readListFromFile() {
         try {
-            //FileInputStream fileIn = openFileInput(mSaveFileName);
-            File saveFile = new File(mSaveFileName);
-            FileInputStream fileIn = new FileInputStream(saveFile);
-            ObjectInputStream objIn = new ObjectInputStream(fileIn);
-            eventList = (List<Event>) objIn.readObject();
-            fileIn.close();
-            objIn.close();
-            saveFile.delete();
-            Log.d(tag, "Restored eventList from save file. Size: " + eventList.size());
+            File saveFile = new File(getFilesDir(), mSaveFileName);
+            if(saveFile.exists()) {
+                FileInputStream fileIn = new FileInputStream(saveFile);
+                ObjectInputStream objIn = new ObjectInputStream(fileIn);
+                eventList = (List<Event>) objIn.readObject();
+                fileIn.close();
+                objIn.close();
+                Log.d(tag, "Restored eventList from save file. Size: " + eventList.size());
+            } else {
+                Log.d(tag, "Save file not found.");
+            }
         } catch (FileNotFoundException e) {
-            Log.d(tag, "File not found.");
             e.printStackTrace();
         } catch (StreamCorruptedException e) {
             e.printStackTrace();
@@ -406,7 +424,7 @@ public class RadioService extends Service{
         registerReceiver(radioBroadcastReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
         registerReceiver(radioBroadcastReceiver, new IntentFilter(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED));
         Log.v(tag, "Registered Bluetooth broadcast receiver");
-        registerReceiver(radioBroadcastReceiver, new IntentFilter(Intent.ACTION_BOOT_COMPLETED));
+        //registerReceiver(radioBroadcastReceiver, new IntentFilter(Intent.ACTION_BOOT_COMPLETED));
     }
 
     //destroy all the receivers
