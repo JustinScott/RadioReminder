@@ -10,8 +10,7 @@
         android:layout_height="wrap_content"
         android:id="@+id/textView1"
         android:text="@string/section1"
-        android:textSize="20dp"
-        />
+        android:textSize="20dp" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -26,23 +25,40 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/watch_spin"
-        android:layout_alignTop="@+id/textView"
-        android:layout_toRightOf="@+id/textView2" />
+        android:layout_alignBottom="@+id/textView"
+        android:layout_toRightOf="@+id/textView" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/net_dev_text2"
+        android:text="Network/Device:"
+        android:textSize="20dp"
+        android:layout_marginTop="10dp"
+        android:layout_below="@id/watch_spin"/>
+
+    <Spinner
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/net_dev_spin1"
+        android:layout_alignBottom="@id/net_dev_text2"
+        android:layout_toRightOf="@id/net_dev_text2"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Respond with: "
         android:id="@+id/textView2"
-        android:layout_below="@+id/watch_spin"
+        android:layout_marginTop="23dp"
+        android:layout_below="@id/net_dev_spin1"
         android:textSize="20dp" />
 
     <Spinner
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/respond_spin"
-        android:layout_alignTop="@+id/textView2"
-        android:layout_toRightOf="@+id/textView2" />
+        android:layout_alignBottom="@id/textView2"
+        android:layout_toRightOf="@id/textView2" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -139,7 +155,7 @@
     <Spinner
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/net_dev_spin"
+        android:id="@+id/net_dev_spin2"
         android:layout_alignBottom="@id/net_dev_text"
         android:layout_toRightOf="@id/net_dev_text"/>
 

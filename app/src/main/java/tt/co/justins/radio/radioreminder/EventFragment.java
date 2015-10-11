@@ -46,7 +46,8 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
     private Spinner watchSpinner;
     private Spinner respondSpinner;
     private Spinner waitEventSpinner;
-    private Spinner netDevSpinner;
+    private Spinner netDevSpinner1;
+    private Spinner netDevSpinner2;
 
     private EditText hoursEdit;
     private EditText minsEdit;
@@ -116,6 +117,9 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         mEvent.watchAction = getSelectedSpinnerItemAsAction(watchSpinner);
         mEvent.respondAction = getSelectedSpinnerItemAsAction(respondSpinner);
 
+        Object netDev1 = netDevSpinner1.getSelectedItem();
+        mEvent.netDev1 = (netDev1 == null) ? "" : netDev1.toString();
+
         //determine which delay was selected
         RadioGroup buttonGroup = (RadioGroup) getView().findViewById(R.id.radioGroup);
         int buttonId = buttonGroup.getCheckedRadioButtonId();
@@ -125,8 +129,8 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
                 mEvent.waitAction = getSelectedSpinnerItemAsAction(waitEventSpinner);
                 mEvent.waitInterval = 0;
                 //getselecteditem returns null if empty
-                Object netDev = netDevSpinner.getSelectedItem();
-                mEvent.netDev = (netDev == null) ? "" : netDev.toString();
+                Object netDev2 = netDevSpinner2.getSelectedItem();
+                mEvent.netDev2 = (netDev2 == null) ? "" : netDev2.toString();
                 break;
             case R.id.delay_interval_button:
                 String sHour = hoursEdit.getText().toString();
@@ -181,8 +185,7 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
 
     private int getSpinnerPositionFromAction(RadioAction.Action action, Spinner spinner) {
         String actionName = RadioAction.getNameFromAction(action);
-        int ret = getSpinnerPositionFromString(actionName, spinner);
-        return ret;
+        return getSpinnerPositionFromString(actionName, spinner);
     }
 
     private int getSpinnerPositionFromString(String spinnerItem, Spinner spinner) {
@@ -248,7 +251,8 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         watchSpinner = (Spinner) v.findViewById(R.id.watch_spin);
         respondSpinner = (Spinner) v.findViewById(R.id.respond_spin);
         waitEventSpinner = (Spinner) v.findViewById(R.id.wait_spin);
-        netDevSpinner = (Spinner) v.findViewById(R.id.net_dev_spin);
+        netDevSpinner1 = (Spinner) v.findViewById(R.id.net_dev_spin1);
+        netDevSpinner2 = (Spinner) v.findViewById(R.id.net_dev_spin2);
 
         hoursEdit = (EditText) v.findViewById(R.id.hour_edit);
         minsEdit = (EditText) v.findViewById(R.id.min_edit);
@@ -267,15 +271,16 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         watchSpinner.setAdapter(adapter);
         respondSpinner.setAdapter(adapter);
         waitEventSpinner.setAdapter(adapter);
-        //populateNetDevSpinnerBt();
 
         //this class needs to implement the OnItemSelectedListener interface for this to work
         //respondSpinner.setOnItemSelectedListener(this);
         waitEventSpinner.setOnItemSelectedListener(this);
-        //watchSpinner.setOnItemSelectedListener(this);
-        netDevSpinner.setOnItemSelectedListener(this);
+        watchSpinner.setOnItemSelectedListener(this);
+        netDevSpinner1.setOnItemSelectedListener(this);
+        netDevSpinner2.setOnItemSelectedListener(this);
 
-        netDevSpinner.setEnabled(false);
+        netDevSpinner1.setEnabled(false);
+        netDevSpinner2.setEnabled(false);
         lameSpinnerHack = 0;
 
         //on click listeners
@@ -292,6 +297,18 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
 
         //fill the controls with the values from the event
         watchSpinner.setSelection(getSpinnerPositionFromAction(mEvent.watchAction, watchSpinner));
+        //set device/network, if needed
+        if(mEvent.watchAction == RadioAction.Action.BLUETOOTH_DEVICE_CONNECT ||
+                mEvent.watchAction == RadioAction.Action.BLUETOOTH_DEVICE_DISCONNECT) {
+            populateNetDevSpinnerBt(false, netDevSpinner1, mEvent.netDev1);
+        }
+
+        if(mEvent.watchAction == RadioAction.Action.WIFI_NETWORK_CONNECT ||
+                mEvent.watchAction == RadioAction.Action.WIFI_NETWORK_DISCONNECT) {
+            populateNetDevSpinnerWifi(netDevSpinner1, mEvent.netDev1);
+        }
+
+
         respondSpinner.setSelection(getSpinnerPositionFromAction(mEvent.respondAction, respondSpinner));
 
         if(!(mEvent.waitAction == null)) {
@@ -302,12 +319,12 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
             //check if the wait action is connecting/disconnecting from device/network
             if(mEvent.waitAction == RadioAction.Action.BLUETOOTH_DEVICE_CONNECT ||
                     mEvent.waitAction == RadioAction.Action.BLUETOOTH_DEVICE_DISCONNECT) {
-                populateNetDevSpinnerBt(false);
+                populateNetDevSpinnerBt(false, netDevSpinner2, mEvent.netDev2);
             }
 
             if(mEvent.waitAction == RadioAction.Action.WIFI_NETWORK_CONNECT ||
                     mEvent.waitAction == RadioAction.Action.WIFI_NETWORK_DISCONNECT) {
-                populateNetDevSpinnerWifi();
+                populateNetDevSpinnerWifi(netDevSpinner2, mEvent.netDev2);
             }
         }
         else if(mEvent.waitInterval != 0) {
@@ -330,9 +347,25 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
     //fires when and item is selected in a spinner view
     public void onItemSelected(AdapterView av, View v, int pos, long id) {
         switch(av.getId()) {
-            case R.id.net_dev_spin:
+            case R.id.net_dev_spin2:
                 Object data = av.getSelectedItem();
                 Log.v(tag, "Net/Dev selected item: " + data.toString());
+                break;
+            case R.id.watch_spin:
+                Log.v(tag, "Wait event spinner selected. Pos: " + pos);
+                if(av.getSelectedItem().toString().equals("Connect to Bluetooth device") ||
+                        av.getSelectedItem().toString().equals("Disconnect from Bluetooth device")) {
+                    populateNetDevSpinnerBt(false, netDevSpinner1, mEvent.netDev1);
+                    break;
+                }
+
+                if(av.getSelectedItem().toString().equals("Connect to WIFI network") ||
+                        av.getSelectedItem().toString().equals("Disconnect from WIFI network")) {
+                    populateNetDevSpinnerWifi(netDevSpinner1, mEvent.netDev1);
+                    break;
+                }
+
+                netDevSpinner1.setEnabled(false);
                 break;
             case R.id.wait_spin:
                 Log.v(tag, "Wait event spinner selected. Pos: " + pos);
@@ -342,17 +375,17 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
 
                     if(av.getSelectedItem().toString().equals("Connect to Bluetooth device") ||
                             av.getSelectedItem().toString().equals("Disconnect from Bluetooth device")) {
-                        populateNetDevSpinnerBt(false);
+                        populateNetDevSpinnerBt(false, netDevSpinner2, mEvent.netDev2);
                         break;
                     }
 
                     if(av.getSelectedItem().toString().equals("Connect to WIFI network") ||
                             av.getSelectedItem().toString().equals("Disconnect from WIFI network")) {
-                        populateNetDevSpinnerWifi();
+                        populateNetDevSpinnerWifi(netDevSpinner2, mEvent.netDev2);
                         break;
                     }
 
-                    netDevSpinner.setEnabled(false);
+                    netDevSpinner2.setEnabled(false);
                 }
                 lameSpinnerHack++;
                 break;
@@ -360,7 +393,7 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
     }
 
     //refreshList = true, forces a refresh, even if the list is available
-    private void populateNetDevSpinnerBt(final boolean refreshList) {
+    private void populateNetDevSpinnerBt(final boolean refreshList, final Spinner spinner, final String netDev) {
         boolean newData = false;
         //make this a background thread because it needs to sleep
         final Handler handler = new Handler();
@@ -386,9 +419,9 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
                                 android.R.layout.simple_spinner_item, mPairedBluetoothDevices);
                         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
-                        netDevSpinner.setAdapter(adapter);
-                        netDevSpinner.setSelection(getSpinnerPositionFromString(mEvent.netDev, netDevSpinner));
-                        netDevSpinner.setEnabled(true);
+                        spinner.setAdapter(adapter);
+                        spinner.setSelection(getSpinnerPositionFromString(netDev, spinner));
+                        spinner.setEnabled(true);
                     }
                 });
             }
@@ -427,7 +460,7 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         }).start();
     }
 
-    public void populateNetDevSpinnerWifi() {
+    public void populateNetDevSpinnerWifi(Spinner spinner, String netDev) {
         if(mPairedWifiNetworks == null) {
             Log.d(tag, "Network list is null.");
             mPairedWifiNetworks = getWifiNetworks();
@@ -438,9 +471,9 @@ public class EventFragment extends Fragment implements AdapterView.OnItemSelecte
         }
         ArrayAdapter adapter = new ArrayAdapter(getActivity(), android.R.layout.simple_spinner_item, mPairedWifiNetworks);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        netDevSpinner.setAdapter(adapter);
-        netDevSpinner.setSelection(getSpinnerPositionFromString(mEvent.netDev, netDevSpinner));
-        netDevSpinner.setEnabled(true);
+        spinner.setAdapter(adapter);
+        spinner.setSelection(getSpinnerPositionFromString(netDev, spinner));
+        spinner.setEnabled(true);
     }
 
     public List<String> getWifiNetworks() {

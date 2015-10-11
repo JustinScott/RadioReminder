@@ -7,7 +7,7 @@ This class describes the event to watch for and how to respond to that event
 serviceType -
 watchAction - the event to watch for
 respondAction - the action that is sent in response to the watched action
-waitAction - delays the response action until this action is detected
+waitAction2 - delays the response action until this action is detected
 waitInterval - delays the response action until this time is reached
 */
 
@@ -21,7 +21,8 @@ public class Event implements Serializable {
     public RadioAction.Action waitAction;
     public int waitInterval;
     public int state;
-    public String netDev;
+    public String netDev1;
+    public String netDev2;
 
     public Event() {
         state = NOT_WAITING;
@@ -29,6 +30,7 @@ public class Event implements Serializable {
         waitAction = null;
         watchAction = RadioAction.Action.WIFI_OFF;
         respondAction = RadioAction.Action.WIFI_OFF;
-        netDev = "";
+        netDev1 = "";
+        netDev2 = "";
     }
 }

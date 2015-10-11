@@ -205,8 +205,8 @@ public class RadioService extends Service{
                         e.watchAction == RadioAction.Action.BLUETOOTH_DEVICE_DISCONNECT ||
                         e.watchAction == RadioAction.Action.WIFI_NETWORK_CONNECT ||
                         e.watchAction == RadioAction.Action.WIFI_NETWORK_DISCONNECT) &&
-                        !e.netDev.equals(netDev)) {
-                    Log.d(tag, "Network / Device mismatch, ignoring action. (" + e.netDev + ") (" + netDev + ")");
+                        !e.netDev1.equals(netDev)) {
+                    Log.d(tag, "Network / Device mismatch, ignoring action. (" + e.netDev2 + ") (" + netDev + ")");
                     break;
                 }
                 //mark the event so it knows the watch action has occured
@@ -231,12 +231,12 @@ public class RadioService extends Service{
         for(Event e : eventList) {
             if (RadioAction.getKeyFromAction(e.waitAction).equals(actionKey)) {
                 //check if its a device network action, and the values match
-                if((e.watchAction == RadioAction.Action.BLUETOOTH_DEVICE_CONNECT ||
-                        e.watchAction == RadioAction.Action.BLUETOOTH_DEVICE_DISCONNECT ||
-                        e.watchAction == RadioAction.Action.WIFI_NETWORK_CONNECT ||
-                        e.watchAction == RadioAction.Action.WIFI_NETWORK_DISCONNECT) &&
-                                !e.netDev.equals(netDev)) {
-                    Log.d(tag, "Network / Device mismatch, ignoring action. (" + e.netDev + ") (" + netDev + ")");
+                if((e.waitAction == RadioAction.Action.BLUETOOTH_DEVICE_CONNECT ||
+                        e.waitAction == RadioAction.Action.BLUETOOTH_DEVICE_DISCONNECT ||
+                        e.waitAction == RadioAction.Action.WIFI_NETWORK_CONNECT ||
+                        e.waitAction == RadioAction.Action.WIFI_NETWORK_DISCONNECT) &&
+                                !e.netDev2.equals(netDev)) {
+                    Log.d(tag, "Network / Device mismatch, ignoring action. (" + e.netDev2 + ") (" + netDev + ")");
                     break;
                 }
 
@@ -297,10 +297,10 @@ public class RadioService extends Service{
     }
 
     private void logEvent(Event e) {
-        Log.v(tag, "-- Watch: " + e.watchAction);
+        Log.v(tag, "-- Watch: " + e.watchAction + " (" + e.netDev1 + ")");
         Log.v(tag, "-- Response: " + e.respondAction);
         if(e.waitAction != null)
-            Log.v(tag, "-- Wait Action: " + e.waitAction);
+            Log.v(tag, "-- Wait Action: " + e.waitAction + " (" + e.netDev1 + ")");
         else if(e.waitInterval != 0)
             Log.v(tag, "-- Wait Interval: " + e.waitInterval + " mins.");
         else
